@@ -7,7 +7,8 @@
                  xmlns:vm="clr-namespace:SpineForge.ViewModels"
                  xmlns:converters="clr-namespace:SpineForge.Converters"
                  Title="SpineForge - Spine 资产转换器"
-                 Width="800" Height="1000"
+                 Icon="/icon.ico"
+                 Width="800" Height="1040"
                  MinWidth="500" MinHeight="500"
                  WindowStartupLocation="CenterScreen"
                  ExtendsContentIntoTitleBar="True"
@@ -32,7 +33,7 @@
                      ShowMinimize="True"
                      ShowClose="True"
                      CanMaximize="True"
-                     Icon="pack://application:,,,/Assets/spine-icon.png" />
+                     Icon="pack://application:,,,/icon.ico"/>
 
         <!-- 主内容 -->
         <ScrollViewer Grid.Row="1" Margin="20">

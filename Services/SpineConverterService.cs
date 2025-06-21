@@ -1,8 +1,10 @@
-﻿// ReSharper disable UnusedParameter.Local
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 using SpineForge.Models;
 using Microsoft.Win32; // 添加注册表支持
 
@@ -13,10 +15,10 @@ namespace SpineForge.Services
         private readonly List<string> _tempFiles = new List<string>();
 
         public async Task<bool> ConvertSpineFilesAsync(
-            string? spineExePath,
-            List<string>? spineFiles,
+            string spineExePath,
+            List<string> spineFiles,
             ConversionSettings settings,
-            IProgress<string>? progress = null)
+            IProgress<string> progress = null)
         {
             try
             {
@@ -28,7 +30,7 @@ namespace SpineForge.Services
                 // 2. 如果传入路径有效，使用传入路径
                 if (!string.IsNullOrEmpty(spineExePath))
                 {
-                    string cleanPath = spineExePath.Trim('"');
+                    string? cleanPath = spineExePath.Trim('"');
                     if (File.Exists(cleanPath) && ValidateSpineExecutable(cleanPath))
                     {
                         validSpineExePath = cleanPath;
@@ -152,6 +154,7 @@ namespace SpineForge.Services
                         catch
                         {
                             // 忽略单个注册表项的错误，继续尝试下一个
+                            continue;
                         }
                     }
                 }
@@ -226,7 +229,7 @@ namespace SpineForge.Services
         }
 
         private async Task<bool> ExportSpineFileAsync(string? spineExePath, string spineFile,
-            ConversionSettings settings, IProgress<string>? progress)
+            ConversionSettings settings, IProgress<string> progress)
         {
             try
             {
@@ -303,14 +306,11 @@ namespace SpineForge.Services
                 // 修改日志显示，确保显示完整命令
                 progress?.Report($"执行命令: \"{processInfo.FileName}\" {processInfo.Arguments}");
 
-                using (var process = new Process())
+                using (var process = new Process { StartInfo = processInfo })
                 {
-                    process.StartInfo = processInfo;
                     var outputData = new List<string>();
-                    if (outputData == null) throw new ArgumentNullException(nameof(outputData));
                     var errorData = new List<string>();
 
-                    
                     process.OutputDataReceived += (sender, e) =>
                     {
                         if (!string.IsNullOrEmpty(e.Data))
@@ -320,7 +320,6 @@ namespace SpineForge.Services
                         }
                     };
 
-                    
                     process.ErrorDataReceived += (sender, e) =>
                     {
                         if (!string.IsNullOrEmpty(e.Data))
@@ -367,7 +366,7 @@ namespace SpineForge.Services
             var executableDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
             // 构建 config 文件夹下的默认设置文件路径
-            var configPath = Path.Combine(executableDir ?? string.Empty, "config", "DefaultExportSettings.json");
+            var configPath = Path.Combine(executableDir, "config", "DefaultExportSettings.json");
 
             return configPath;
         }
@@ -382,7 +381,7 @@ namespace SpineForge.Services
                 progress?.Report($"开始转换: {Path.GetFileName(asset.FilePath)}");
 
                 // 验证输入参数
-                if (progress != null && !ValidateInputs(asset, settings, progress))
+                if (!ValidateInputs(asset, settings, progress))
                     return false;
 
                 // 获取有效的 Spine 可执行文件路径
@@ -423,7 +422,7 @@ namespace SpineForge.Services
             }
         }
 
-        private string? GetValidSpineExecutablePath(string providedPath, IProgress<string>? progress)
+        private string? GetValidSpineExecutablePath(string providedPath, IProgress<string> progress)
         {
             // 1. 如果提供了路径，先验证
             if (!string.IsNullOrEmpty(providedPath))
@@ -474,14 +473,14 @@ namespace SpineForge.Services
             // 检查源文件
             if (string.IsNullOrEmpty(asset.FilePath) || !File.Exists(asset.FilePath))
             {
-                progress.Report("错误: 找不到源文件");
+                progress?.Report("错误: 找不到源文件");
                 return false;
             }
 
             // 检查输出目录
             if (string.IsNullOrEmpty(settings.OutputDirectory))
             {
-                progress.Report("错误: 输出目录不能为空");
+                progress?.Report("错误: 输出目录不能为空");
                 return false;
             }
 
@@ -492,7 +491,7 @@ namespace SpineForge.Services
             }
             catch (Exception ex)
             {
-                progress.Report($"错误: 无法创建输出目录 - {ex.Message}");
+                progress?.Report($"错误: 无法创建输出目录 - {ex.Message}");
                 return false;
             }
 
@@ -567,7 +566,7 @@ namespace SpineForge.Services
                     packing = "rectangles",
                     prettyPrint = false,
                     legacyOutput = false,
-                    webp = (object)null!,
+                    webp = (object)null,
                     bleedIterations = 2,
                     ignore = false,
                     separator = "_",
@@ -576,7 +575,7 @@ namespace SpineForge.Services
                 packSource = "attachments",
                 packTarget = "perskeleton",
                 warnings = true,
-                version = (object)null!,
+                version = (object)null,
                 output = settings.OutputDirectory,
                 forceAll = false,
                 input = asset.FilePath,
@@ -609,7 +608,7 @@ namespace SpineForge.Services
                 return ConvertJsonElement(element);
             }
 
-            var dict = new Dictionary<string, object?>();
+            var dict = new Dictionary<string, object>();
             foreach (var property in element.EnumerateObject())
             {
                 if (property.Name == "maxWidth" && settings.MaxWidth > 0)
@@ -742,7 +741,7 @@ namespace SpineForge.Services
                     return list.ToArray();
 
                 case JsonValueKind.String:
-                    return element.GetString() ?? string.Empty;
+                    return element.GetString();
 
                 case JsonValueKind.Number:
                     if (element.TryGetInt32(out int intValue))
@@ -765,7 +764,6 @@ namespace SpineForge.Services
             }
         }
 
-        // ReSharper disable once UnusedMember.Local
         private string CreateExportSettings(ConversionSettings settings)
         {
             var exportSettings = new
@@ -804,7 +802,7 @@ namespace SpineForge.Services
         }
 
         private async Task<bool> ExecuteSpineConversion(string? spineExePath, string arguments,
-            IProgress<string>? progress)
+            IProgress<string> progress)
         {
             var processInfo = new ProcessStartInfo
             {
@@ -817,11 +815,9 @@ namespace SpineForge.Services
                 WorkingDirectory = Path.GetDirectoryName(spineExePath)
             };
 
-            using var process = new Process();
-            process.StartInfo = processInfo;
+            using var process = new Process { StartInfo = processInfo };
 
             var outputData = new List<string>();
-            if (outputData == null) throw new ArgumentNullException(nameof(outputData));
             var errorData = new List<string>();
 
             process.OutputDataReceived += (sender, e) =>
@@ -833,7 +829,6 @@ namespace SpineForge.Services
                 }
             };
 
-            
             process.ErrorDataReceived += (sender, e) =>
             {
                 if (!string.IsNullOrEmpty(e.Data))
@@ -935,7 +930,7 @@ namespace SpineForge.Services
         }
 
         // 添加扫描目录方法的实现
-        public Task<List<SpineAsset>> ScanDirectoryAsync(string directoryPath, IProgress<string>? progress = null)
+        public async Task<List<SpineAsset>> ScanDirectoryAsync(string directoryPath, IProgress<string> progress = null)
         {
             var assets = new List<SpineAsset>();
 
@@ -944,7 +939,7 @@ namespace SpineForge.Services
                 if (string.IsNullOrEmpty(directoryPath) || !Directory.Exists(directoryPath))
                 {
                     progress?.Report("错误: 目录路径无效");
-                    return Task.FromResult(assets);
+                    return assets;
                 }
 
                 progress?.Report($"开始扫描目录: {directoryPath}");
@@ -982,7 +977,7 @@ namespace SpineForge.Services
                 progress?.Report($"扫描目录时发生错误: {ex.Message}");
             }
 
-            return Task.FromResult(assets);
+            return assets;
         }
     }
 }

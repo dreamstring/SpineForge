@@ -7,7 +7,7 @@ namespace SpineForge.Models
 {
     public class SpineAsset : INotifyPropertyChanged
     {
-        private string _filePath = string.Empty;
+        private string? _filePath = string.Empty;
         private string _name = string.Empty;
         private string? _directory = string.Empty;
         private string _version = string.Empty;
@@ -17,7 +17,7 @@ namespace SpineForge.Models
         private string _spineExecutablePath = string.Empty;
         private string? _spineFilePath = string.Empty;
 
-        public string FilePath
+        public string? FilePath
         {
             get => _filePath;
             set
