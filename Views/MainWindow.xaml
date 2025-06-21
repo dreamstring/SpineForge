@@ -1,0 +1,364 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<ui:FluentWindow x:Class="SpineForge.Views.MainWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 xmlns:vm="clr-namespace:SpineForge.ViewModels"
+                 xmlns:converters="clr-namespace:SpineForge.Converters"
+                 Title="SpineForge - Spine 资产转换器"
+                 Width="800" Height="1000"
+                 MinWidth="500" MinHeight="500"
+                 WindowStartupLocation="CenterScreen"
+                 ExtendsContentIntoTitleBar="True"
+                 WindowBackdropType="Mica">
+    
+    <ui:FluentWindow.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+    </ui:FluentWindow.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- 标题栏 -->
+        <ui:TitleBar Grid.Row="0"
+                     Title="SpineForge"
+                     ShowMaximize="True"
+                     ShowMinimize="True"
+                     ShowClose="True"
+                     CanMaximize="True"
+                     Icon="pack://application:,,,/Assets/spine-icon.png" />
+
+        <!-- 主内容 -->
+        <ScrollViewer Grid.Row="1" Margin="20">
+            <StackPanel>
+
+                <!-- Spine 可执行文件选择 -->
+                <ui:Card Margin="0,0,0,10">
+                    <StackPanel Margin="15">
+                        <ui:TextBlock Text="Spine 可执行文件设置"
+                                      FontSize="14"
+                                      FontWeight="SemiBold"
+                                      Margin="0,0,0,10" />
+
+                        <ui:InfoBar Title="重要提示"
+                                    Message="请选择您安装的 Spine 软件中的可执行文件 (Windows: Spine.com, Mac: Spine)"
+                                    Severity="Warning"
+                                    IsOpen="True"
+                                    IsClosable="False"
+                                    Margin="0,0,0,10" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <ui:TextBlock Grid.Column="0"
+                                          Text="Spine 可执行文件:"
+                                          VerticalAlignment="Center"
+                                          FontWeight="Medium"
+                                          FontSize="12" />
+
+                            <ui:TextBox Grid.Column="1"
+                                        Text="{Binding CurrentAsset.SpineExecutablePath, Mode=OneWay}"
+                                        IsReadOnly="True"
+                                        Margin="0,0,6,0" />
+
+                            <ui:SymbolIcon Grid.Column="2"
+                                           Symbol="CheckmarkCircle24"
+                                           Foreground="Green"
+                                           Visibility="{Binding ConversionSettings.IsExportSettingsValid, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                           Margin="0,0,6,0" />
+
+                            <ui:Button Grid.Column="3"
+                                       Content="浏览..."
+                                       Command="{Binding SelectSpineExecutableCommand}"
+                                       FontSize="12"
+                                       Padding="10,5" />
+                        </Grid>
+                    </StackPanel>
+                </ui:Card>
+
+
+                <!-- .spine 文件选择区域 -->
+                <ui:Card Margin="0,0,0,10">
+                    <StackPanel Margin="15">
+                        <ui:TextBlock Text="选择 Spine 文件"
+                                      FontSize="14"
+                                      FontWeight="SemiBold"
+                                      Margin="0,0,0,10" />
+
+                        <ui:InfoBar Title="提示"
+                                    Message="选择 .spine 文件进行转换，只有 .spine 和 .bytes 支持转版本"
+                                    Severity="Informational"
+                                    IsOpen="True"
+                                    IsClosable="False"
+                                    Margin="0,0,0,10" />
+
+                        <!-- .spine 文件选择行 -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <ui:TextBlock Grid.Column="0"
+                                          Text=".spine 文件:"
+                                          VerticalAlignment="Center"
+                                          FontWeight="Medium"
+                                          FontSize="12" />
+
+                            <ui:TextBox Grid.Column="1"
+                                        Text="{Binding CurrentAsset.SpineFilePath}"
+                                        IsReadOnly="True"
+                                        PlaceholderText="请选择 .spine 文件..."
+                                        Margin="0,0,6,0" />
+
+                            <ui:SymbolIcon Grid.Column="2"
+                                           Symbol="CheckmarkCircle24"
+                                           Foreground="Green"
+                                           Visibility="{Binding CurrentAsset.IsSpineFileExists, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                           Margin="0,0,6,0" />
+
+                            <ui:Button Grid.Column="3"
+                                       Content="浏览..."
+                                       Command="{Binding SelectSpineFileCommand}"
+                                       FontSize="12"
+                                       Padding="10,5" />
+                        </Grid>
+                    </StackPanel>
+                </ui:Card>
+
+                <!-- 转换设置区域 -->
+                <ui:Card Margin="0,0,0,10">
+                    <StackPanel Margin="15">
+                        <ui:TextBlock Text="转换设置"
+                                      FontSize="14"
+                                      FontWeight="SemiBold"
+                                      Margin="0,0,0,10" />
+
+                        <!-- 导出设置文件 -->
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <ui:TextBlock Grid.Column="0"
+                                          Text="导出设置:"
+                                          VerticalAlignment="Center"
+                                          FontWeight="Medium"
+                                          FontSize="12" />
+
+                            <ui:TextBox Grid.Column="1"
+                                        Text="{Binding ConversionSettings.ExportSettingsPath}"
+                                        IsReadOnly="True"
+                                        Margin="0,0,6,0" />
+
+                            <ui:SymbolIcon Grid.Column="2"
+                                           Symbol="CheckmarkCircle24"
+                                           Foreground="Green"
+                                           Visibility="{Binding ConversionSettings.IsExportSettingsExists, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                           Margin="0,0,6,0" />
+
+                            <ui:Button Grid.Column="3"
+                                       Content="选择设置文件"
+                                       Command="{Binding SelectExportSettingsCommand}"
+                                       FontSize="12"
+                                       Padding="10,5" />
+                        </Grid>
+
+                        <!-- 输出目录 -->
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <ui:TextBlock Grid.Column="0"
+                                          Text="输出目录:"
+                                          VerticalAlignment="Center"
+                                          FontWeight="Medium"
+                                          FontSize="12" />
+
+                            <ui:TextBox Grid.Column="1"
+                                        Text="{Binding ConversionSettings.OutputDirectory}"
+                                        PlaceholderText="留空则保存在原文件旁边"
+                                        IsReadOnly="True"
+                                        Margin="0,0,6,0" />
+
+                            <ui:Button Grid.Column="2"
+                                       Content="选择目录"
+                                       Command="{Binding SelectOutputDirectoryCommand}"
+                                       FontSize="12"
+                                       Padding="10,5" />
+                        </Grid>
+
+                        <!-- 图集尺寸设置 -->
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <ui:TextBlock Text="最大宽度:" FontWeight="Medium" Margin="0,0,0,3" FontSize="12" />
+                                <ComboBox SelectedValue="{Binding ConversionSettings.MaxWidth}"
+                                          SelectedValuePath="Content"
+                                          HorizontalAlignment="Stretch"
+                                          FontSize="12">
+                                    <ComboBoxItem Content="64" />
+                                    <ComboBoxItem Content="128" />
+                                    <ComboBoxItem Content="256" />
+                                    <ComboBoxItem Content="512" IsSelected="True" />
+                                    <ComboBoxItem Content="1024" />
+                                    <ComboBoxItem Content="2048" />
+                                    <ComboBoxItem Content="4096" />
+                                </ComboBox>
+                            </StackPanel>
+
+                            <ui:TextBlock Grid.Column="1"
+                                          Text="×"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Bottom"
+                                          FontSize="16"
+                                          FontWeight="Bold"
+                                          Margin="8,0,8,10" />
+
+                            <StackPanel Grid.Column="2">
+                                <ui:TextBlock Text="最大高度:" FontWeight="Medium" Margin="0,0,0,3" FontSize="12" />
+                                <ComboBox SelectedValue="{Binding ConversionSettings.MaxHeight}"
+                                          SelectedValuePath="Content"
+                                          HorizontalAlignment="Stretch"
+                                          FontSize="12">
+                                    <ComboBoxItem Content="64" />
+                                    <ComboBoxItem Content="128" />
+                                    <ComboBoxItem Content="256" />
+                                    <ComboBoxItem Content="512" IsSelected="True" />
+                                    <ComboBoxItem Content="1024" />
+                                    <ComboBoxItem Content="2048" />
+                                    <ComboBoxItem Content="4096" />
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- 版本选择 -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <ui:TextBlock Text="源版本:" FontWeight="Medium" Margin="0,0,0,3" FontSize="12" />
+                                <ComboBox ItemsSource="{Binding AvailableVersions}"
+                                          SelectedItem="{Binding SelectedSourceVersion}"
+                                          DisplayMemberPath="Name"
+                                          HorizontalAlignment="Stretch"
+                                          FontSize="12" />
+                            </StackPanel>
+                            
+                            <ui:SymbolIcon Grid.Column="1"
+                                           Symbol="ArrowRight24"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Bottom" 
+                                           Margin="8,0,8,10" />
+                            
+                            <StackPanel Grid.Column="2">
+                                <ui:TextBlock Text="目标版本:" FontWeight="Medium" Margin="0,0,0,3" FontSize="12" />
+                                <ComboBox ItemsSource="{Binding AvailableVersions}"
+                                          SelectedItem="{Binding SelectedTargetVersion}"
+                                          DisplayMemberPath="Name"
+                                          HorizontalAlignment="Stretch"
+                                          FontSize="12" />
+                            </StackPanel>
+                        </Grid>
+
+                    </StackPanel>
+                </ui:Card>
+
+                <!-- 转换操作区域 -->
+                <ui:Card Margin="0,0,0,10">
+                    <StackPanel Margin="15">
+                        <ui:TextBlock Text="开始转换"
+                                      FontSize="14"
+                                      FontWeight="SemiBold"
+                                      Margin="0,0,0,10" />
+
+                        <!-- 状态信息 -->
+                        <ui:InfoBar Title="状态"
+                                    Message="{Binding StatusMessage}"
+                                    Severity="{Binding CurrentAsset.IsComplete, Converter={StaticResource BooleanToSeverityConverter}}"
+                                    IsOpen="True"
+                                    IsClosable="False"
+                                    Margin="0,0,0,10" />
+
+                        <!-- 转换按钮 -->
+                        <ui:Button Content="开始转换"
+                                   Command="{Binding StartConversionCommand}"
+                                   IsEnabled="{Binding IsConverting, Converter={StaticResource InverseBooleanConverter}}"
+                                   HorizontalAlignment="Center"
+                                   Padding="20,6"
+                                   Margin="0,0,0,10"
+                                   FontSize="13">
+                            <ui:Button.Style>
+                                <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsConverting}" Value="True">
+                                            <Setter Property="Content" Value="转换中..." />
+                                            <Setter Property="Appearance" Value="Secondary" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ui:Button.Style>
+                        </ui:Button>
+
+                        <!-- 进度指示器 -->
+                        <ui:ProgressRing IsIndeterminate="True"
+                                         Visibility="{Binding IsConverting, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                         HorizontalAlignment="Center"
+                                         Width="30" Height="30" />
+                    </StackPanel>
+                </ui:Card>
+
+                <!-- 转换日志区域 -->
+                <ui:Card Margin="0,0,0,10"
+                         Visibility="{Binding ConversionLog, Converter={StaticResource StringToVisibilityConverter}}">
+                    <StackPanel Margin="15">
+                        <ui:TextBlock Text="📋 转换日志"
+                                      FontSize="14"
+                                      FontWeight="SemiBold"
+                                      Margin="0,0,0,10" />
+
+                        <ScrollViewer MaxHeight="160"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Auto">
+                            <ui:TextBox Text="{Binding ConversionLog}"
+                                        IsReadOnly="True"
+                                        TextWrapping="Wrap"
+                                        FontFamily="Consolas"
+                                        FontSize="10"
+                                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderThickness="0" />
+                        </ScrollViewer>
+                    </StackPanel>
+                </ui:Card>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</ui:FluentWindow>

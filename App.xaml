@@ -1,0 +1,23 @@
+﻿<Application x:Class="SpineForge.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:converters="clr-namespace:SpineForge.Converters">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ui:ThemesDictionary Theme="Dark" />
+                <ui:ControlsDictionary />
+            </ResourceDictionary.MergedDictionaries>
+            
+            <!-- 转换器资源 -->
+            <converters:FileExistsToVisibilityConverter x:Key="FileExistsToVisibilityConverter"/>
+            <converters:FileNotExistsToVisibilityConverter x:Key="FileNotExistsToVisibilityConverter"/>
+            <converters:FileNameConverter x:Key="FileNameConverter"/>
+            <converters:BooleanToSeverityConverter x:Key="BooleanToSeverityConverter"/>
+            <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+            <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
