@@ -17,7 +17,7 @@ if exist obj rmdir /s /q obj
 echo 开始单文件发布...
 
 REM 强制单文件发布到带时间戳的文件夹
-dotnet publish -c Release -r win-x64 /p:SelfContained=true /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true /p:PublishTrimmed=false /p:EnableCompressionInSingleFile=true --output ./publish-%timestamp%
+dotnet publish -c Release -r win-x64 /p:SelfContained=true /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true /p:PublishTrimmed=false /p:EnableCompressionInSingleFile=true /p:DebugType=None /p:DebugSymbols=false --output ./publish-%timestamp%
 
 if %errorlevel% equ 0 (
     echo.

@@ -187,6 +187,7 @@
                                 <ColumnDefinition Width="110" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
                             <ui:TextBlock Grid.Column="0"
@@ -198,10 +199,15 @@
                             <ui:TextBox Grid.Column="1"
                                         Text="{Binding ConversionSettings.OutputDirectory}"
                                         PlaceholderText="留空则保存在原文件旁边"
-                                        IsReadOnly="True"
                                         Margin="0,0,6,0" />
 
-                            <ui:Button Grid.Column="2"
+                            <ui:SymbolIcon Grid.Column="2"
+                                           Symbol="CheckmarkCircle24"
+                                           Foreground="Green"
+                                           Visibility="{Binding ConversionSettings.IsOutputDirectoryValid, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                           Margin="0,0,6,0" />
+
+                            <ui:Button Grid.Column="3"
                                        Content="选择目录"
                                        Command="{Binding SelectOutputDirectoryCommand}"
                                        FontSize="12"

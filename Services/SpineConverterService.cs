@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -231,6 +232,9 @@ namespace SpineForge.Services
         private async Task<bool> ExportSpineFileAsync(string? spineExePath, string spineFile,
             ConversionSettings settings, IProgress<string> progress)
         {
+            string tempInputFile = null;
+            string tempOutputDir = null;
+
             try
             {
                 // 立即验证参数
@@ -249,6 +253,13 @@ namespace SpineForge.Services
                     return false;
                 }
 
+                // 验证输入文件
+                if (!File.Exists(spineFile))
+                {
+                    progress?.Report($"错误: Spine 项目文件不存在: {spineFile}");
+                    return false;
+                }
+
                 var outputDir = settings.OutputDirectory;
                 var baseFileName = Path.GetFileNameWithoutExtension(spineFile);
 
@@ -258,11 +269,70 @@ namespace SpineForge.Services
                     Directory.CreateDirectory(outputDir);
                 }
 
+                // 处理中文路径问题
+                var actualInputFile = spineFile;
+                var actualOutputDir = outputDir;
+
+                // 检查输入文件路径是否包含非ASCII字符（包括中文）
+                if (ContainsNonAsciiCharacters(spineFile))
+                {
+                    var tempDir = Path.GetTempPath();
+                    var extension = Path.GetExtension(spineFile);
+                    tempInputFile = Path.Combine(tempDir,
+                        $"spine_temp_{DateTime.Now:yyyyMMddHHmmss}_{Guid.NewGuid():N}{extension}");
+
+                    // 复制原文件到临时位置
+                    File.Copy(spineFile, tempInputFile);
+                    actualInputFile = tempInputFile;
+                    progress?.Report($"检测到中文路径，创建临时输入文件: {tempInputFile}");
+
+                    // 同时复制相关的 .atlas 和图片文件
+                    var sourceDir = Path.GetDirectoryName(spineFile);
+                    var tempFileDir = Path.GetDirectoryName(tempInputFile);
+                    var baseNameWithoutExt = Path.GetFileNameWithoutExtension(spineFile);
+                    var tempBaseName = Path.GetFileNameWithoutExtension(tempInputFile);
+
+                    // 复制 .atlas 文件
+                    var atlasFile = Path.Combine(sourceDir, baseNameWithoutExt + ".atlas");
+                    if (File.Exists(atlasFile))
+                    {
+                        var tempAtlasFile = Path.Combine(tempFileDir, tempBaseName + ".atlas");
+                        File.Copy(atlasFile, tempAtlasFile);
+                        _tempFiles.Add(tempAtlasFile);
+                        progress?.Report($"复制相关文件: {atlasFile} -> {tempAtlasFile}");
+                    }
+
+                    // 复制图片文件
+                    var imageExtensions = new[] { ".png", ".jpg", ".jpeg" };
+                    foreach (var imgExt in imageExtensions)
+                    {
+                        var imgFile = Path.Combine(sourceDir, baseNameWithoutExt + imgExt);
+                        if (File.Exists(imgFile))
+                        {
+                            var tempImgFile = Path.Combine(tempFileDir, tempBaseName + imgExt);
+                            File.Copy(imgFile, tempImgFile);
+                            _tempFiles.Add(tempImgFile);
+                            progress?.Report($"复制相关文件: {imgFile} -> {tempImgFile}");
+                        }
+                    }
+
+                    _tempFiles.Add(tempInputFile);
+                }
+
+                // 检查输出目录是否包含非ASCII字符
+                if (ContainsNonAsciiCharacters(outputDir))
+                {
+                    tempOutputDir = Path.Combine(Path.GetTempPath(), $"spine_output_{Guid.NewGuid():N}");
+                    Directory.CreateDirectory(tempOutputDir);
+                    actualOutputDir = tempOutputDir;
+                    progress?.Report($"检测到中文输出路径，创建临时输出目录: {tempOutputDir}");
+                }
+
                 // 构建导出参数
                 var arguments = new List<string>
                 {
-                    "-i", $"\"{spineFile}\"",
-                    "-o", $"\"{outputDir}\""
+                    "-i", $"\"{actualInputFile}\"",
+                    "-o", $"\"{actualOutputDir}\""
                 };
 
                 // 添加导出设置
@@ -291,7 +361,7 @@ namespace SpineForge.Services
                     }
                 }
 
-                // 执行 Spine 导出命令
+                // 执行 Spine 导出命令 - 关键修改：添加编码设置
                 var processInfo = new ProcessStartInfo
                 {
                     FileName = spineExePath,
@@ -300,8 +370,18 @@ namespace SpineForge.Services
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
-                    WorkingDirectory = Path.GetDirectoryName(spineExePath)
+                    WorkingDirectory = Path.GetDirectoryName(actualInputFile), // 使用处理后的输入文件目录
+
+                    // 关键：设置编码为 UTF-8
+                    StandardOutputEncoding = System.Text.Encoding.UTF8,
+                    StandardErrorEncoding = System.Text.Encoding.UTF8
                 };
+
+                // 设置环境变量强制使用 UTF-8
+                processInfo.EnvironmentVariables["PYTHONIOENCODING"] = "utf-8";
+                processInfo.EnvironmentVariables["LC_ALL"] = "en_US.UTF-8";
+                processInfo.EnvironmentVariables["LANG"] = "en_US.UTF-8";
+                processInfo.EnvironmentVariables["CHCP"] = "65001"; // Windows UTF-8 代码页
 
                 // 修改日志显示，确保显示完整命令
                 progress?.Report($"执行命令: \"{processInfo.FileName}\" {processInfo.Arguments}");
@@ -333,11 +413,55 @@ namespace SpineForge.Services
                     process.BeginOutputReadLine();
                     process.BeginErrorReadLine();
 
-                    await Task.Run(() => process.WaitForExit());
+                    // 添加超时处理
+                    var timeoutMs = 300000; // 5分钟超时
+                    var completed = await Task.Run(() => process.WaitForExit(timeoutMs));
+
+                    if (!completed)
+                    {
+                        progress?.Report("转换超时，正在终止进程...");
+                        try
+                        {
+                            process.Kill();
+                        }
+                        catch
+                        {
+                        }
+
+                        return false;
+                    }
 
                     if (process.ExitCode == 0)
                     {
                         progress?.Report($"导出成功完成: {baseFileName}");
+
+                        // 如果使用了临时输出目录，复制文件回原目录
+                        if (tempOutputDir != null)
+                        {
+                            progress?.Report("正在复制文件到最终输出目录...");
+                            CopyDirectory(tempOutputDir, outputDir, true);
+                            progress?.Report("已将文件复制回原输出目录");
+                        }
+
+                        // 验证输出文件
+                        var expectedFiles = new[] { ".json", ".atlas", ".png" };
+                        var hasOutput = false;
+
+                        foreach (var ext in expectedFiles)
+                        {
+                            var outputFile = Path.Combine(outputDir, baseFileName + ext);
+                            if (File.Exists(outputFile))
+                            {
+                                hasOutput = true;
+                                progress?.Report($"✓ 生成文件: {outputFile}");
+                            }
+                        }
+
+                        if (!hasOutput)
+                        {
+                            progress?.Report("⚠ 警告: 未找到预期的输出文件，但命令执行成功");
+                        }
+
                         return true;
                     }
                     else
@@ -346,6 +470,11 @@ namespace SpineForge.Services
                         if (errorData.Count > 0)
                         {
                             progress?.Report($"错误详情: {string.Join(Environment.NewLine, errorData)}");
+                        }
+
+                        if (outputData.Count > 0)
+                        {
+                            progress?.Report($"输出详情: {string.Join(Environment.NewLine, outputData)}");
                         }
 
                         return false;
@@ -358,7 +487,68 @@ namespace SpineForge.Services
                 progress?.Report($"异常堆栈: {ex.StackTrace}");
                 return false;
             }
+            finally
+            {
+                // 清理临时文件
+                if (tempInputFile != null && File.Exists(tempInputFile))
+                {
+                    try
+                    {
+                        File.Delete(tempInputFile);
+                        progress?.Report("已清理临时输入文件");
+                    }
+                    catch (Exception ex)
+                    {
+                        progress?.Report($"清理临时输入文件失败: {ex.Message}");
+                    }
+                }
+
+                if (tempOutputDir != null && Directory.Exists(tempOutputDir))
+                {
+                    try
+                    {
+                        Directory.Delete(tempOutputDir, true);
+                        progress?.Report("已清理临时输出目录");
+                    }
+                    catch (Exception ex)
+                    {
+                        progress?.Report($"清理临时输出目录失败: {ex.Message}");
+                    }
+                }
+            }
         }
+        
+        private static bool ContainsNonAsciiCharacters(string path)
+        {
+            return path.Any(c => c > 127);
+        }
+
+        private void CopyDirectory(string sourceDir, string targetDir, bool recursive)
+        {
+            var dir = new DirectoryInfo(sourceDir);
+            if (!dir.Exists)
+                return;
+
+            DirectoryInfo[] dirs = dir.GetDirectories();
+
+            Directory.CreateDirectory(targetDir);
+
+            foreach (FileInfo file in dir.GetFiles())
+            {
+                string targetFilePath = Path.Combine(targetDir, file.Name);
+                file.CopyTo(targetFilePath, true);
+            }
+
+            if (recursive)
+            {
+                foreach (DirectoryInfo subDir in dirs)
+                {
+                    string newTargetDir = Path.Combine(targetDir, subDir.Name);
+                    CopyDirectory(subDir.FullName, newTargetDir, true);
+                }
+            }
+        }
+
 
         private string GetDefaultExportSettingsPath()
         {
@@ -505,7 +695,7 @@ namespace SpineForge.Services
             // 基本参数
             arguments.AddRange(new[] { "-i", $"\"{asset.FilePath}\"" });
             arguments.AddRange(new[] { "-o", $"\"{settings.OutputDirectory}\"" });
-    
+
             // 创建临时导出设置文件
             var tempSettingsPath = CreateTempExportSettings(asset, settings);
             _tempFiles.Add(tempSettingsPath);

@@ -124,8 +124,23 @@ namespace SpineForge.Models
             {
                 _outputDirectory = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(IsOutputDirectoryValid));
             }
         }
+
+        public bool IsOutputDirectoryValid
+        {
+            get
+            {
+                // 空值是有效的（使用默认位置）
+                if (string.IsNullOrEmpty(OutputDirectory))
+                    return true;
+            
+                // 检查目录是否存在
+                return Directory.Exists(OutputDirectory);
+            }
+        }
+
 
         public string ExportSettingsPath
         {

@@ -3,6 +3,7 @@ using SpineForge.Services;
 using SpineForge.ViewModels;
 using SpineForge.Views;
 using System;
+using System.Text;
 using System.Windows;
 using Application = System.Windows.Application;
 
@@ -14,6 +15,18 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // 设置控制台编码为 UTF-8，解决中文乱码问题
+        try
+        {
+            Console.OutputEncoding = Encoding.UTF8;
+            Console.InputEncoding = Encoding.UTF8;
+        }
+        catch (Exception ex)
+        {
+            // 如果设置编码失败，记录错误但不影响程序启动
+            System.Diagnostics.Debug.WriteLine($"设置编码失败: {ex.Message}");
+        }
+
         // 配置服务容器
         var services = new ServiceCollection();
         ConfigureServices(services);
