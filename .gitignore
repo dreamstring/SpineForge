@@ -382,6 +382,7 @@ $RECYCLE.BIN/
 # Temporary files
 *.tmp
 *.temp
+*.zip
 
 # Package files
 *.nupkg
