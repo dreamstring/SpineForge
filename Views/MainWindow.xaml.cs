@@ -319,19 +319,16 @@ public partial class MainWindow : FluentWindow
 
     private void SetTextBoxCompatibleStyle(Wpf.Ui.Controls.TextBox textBox)
     {
-        // 只改变颜色，保持原有边框粗细
-        textBox.BorderBrush = new SolidColorBrush(Color.FromArgb(180, 144, 238, 144));
+        textBox.BorderBrush = new SolidColorBrush(Color.FromArgb(120, 144, 238, 144));
         textBox.Background = new SolidColorBrush(Color.FromArgb(20, 0, 255, 0)); //
     }
 
     private void SetTextBoxHoverStyle(Wpf.Ui.Controls.TextBox textBox)
     {
-        // 只改变颜色，保持原有边框粗细
-        textBox.BorderBrush = new SolidColorBrush(Color.FromArgb(180, 30, 144, 255)); 
+        textBox.BorderBrush = new SolidColorBrush(Color.FromArgb(120, 30, 144, 255)); 
         textBox.Background = new SolidColorBrush(Color.FromArgb(40, 30, 144, 255));
     }
-
-
+    
     private void ResetTextBoxHoverStyle(Wpf.Ui.Controls.TextBox textBox)
     {
         if (!string.IsNullOrEmpty(_currentDragExtension) && IsValidDropTarget(textBox, _currentDragExtension))

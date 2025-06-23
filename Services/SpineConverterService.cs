@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 using SpineForge.Models;
 using Microsoft.Win32;
-using System.Text.Json;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.RegularExpressions;
@@ -18,13 +13,13 @@ namespace SpineForge.Services
 {
     public class SpineConverterService : ISpineConverterService
     {
-        private readonly List<string> _tempFiles = new List<string>();
+        private readonly List<string> _tempFiles = [];
 
         public async Task<bool> ConvertSpineFilesAsync(
-            string spineExePath,
-            List<string> spineFiles,
+            string? spineExePath,
+            List<string>? spineFiles,
             ConversionSettings settings,
-            IProgress<string> progress = null)
+            IProgress<string>? progress = null)
         {
             try
             {
@@ -176,8 +171,8 @@ namespace SpineForge.Services
         // 新的常见路径查找方法
         private string? FindSpineExecutableFromCommonPaths()
         {
-            string?[] commonPaths = new[]
-            {
+            string?[] commonPaths =
+            [
                 @"C:\Program Files\Spine\Spine.exe",
                 @"C:\Program Files\Spine\Spine.com",
                 @"C:\Program Files (x86)\Spine\Spine.exe",
@@ -188,18 +183,18 @@ namespace SpineForge.Services
                     "Spine.exe"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Spine",
                     "Spine.com")
-            };
+            ];
 
             // 添加环境变量路径
             var spinePath = Environment.GetEnvironmentVariable("SPINE_PATH");
             if (!string.IsNullOrEmpty(spinePath))
             {
-                string?[] envPaths = new[]
-                {
+                string?[] envPaths =
+                [
                     spinePath,
                     Path.Combine(spinePath, "Spine.exe"),
                     Path.Combine(spinePath, "Spine.com")
-                };
+                ];
 
                 foreach (var path in envPaths)
                 {
@@ -235,7 +230,7 @@ namespace SpineForge.Services
         }
 
         private async Task<bool> ExportSpineFileAsync(string? spineExePath, string spineFile,
-            ConversionSettings settings, IProgress<string> progress)
+            ConversionSettings settings, IProgress<string>? progress)
         {
             string tempInputFile = null;
             string tempOutputDir = null;
@@ -314,10 +309,13 @@ namespace SpineForge.Services
                         var imgFile = Path.Combine(sourceDir, baseNameWithoutExt + imgExt);
                         if (File.Exists(imgFile))
                         {
-                            var tempImgFile = Path.Combine(tempFileDir, tempBaseName + imgExt);
-                            File.Copy(imgFile, tempImgFile);
-                            _tempFiles.Add(tempImgFile);
-                            progress?.Report($"复制相关文件: {imgFile} -> {tempImgFile}");
+                            if (tempFileDir != null)
+                            {
+                                var tempImgFile = Path.Combine(tempFileDir, tempBaseName + imgExt);
+                                File.Copy(imgFile, tempImgFile);
+                                _tempFiles.Add(tempImgFile);
+                                progress?.Report($"复制相关文件: {imgFile} -> {tempImgFile}");
+                            }
                         }
                     }
 
@@ -343,7 +341,7 @@ namespace SpineForge.Services
                 // 添加导出设置
                 if (!string.IsNullOrEmpty(settings.ExportSettingsPath) && File.Exists(settings.ExportSettingsPath))
                 {
-                    arguments.AddRange(new[] { "-e", $"\"{settings.ExportSettingsPath}\"" });
+                    arguments.AddRange(["-e", $"\"{settings.ExportSettingsPath}\""]);
                     progress?.Report($"使用自定义导出设置: {settings.ExportSettingsPath}");
                 }
                 else
@@ -351,17 +349,16 @@ namespace SpineForge.Services
                     var defaultSettingsPath = GetDefaultExportSettingsPath();
                     if (File.Exists(defaultSettingsPath))
                     {
-                        arguments.AddRange(new[] { "-e", $"\"{defaultSettingsPath}\"" });
+                        arguments.AddRange(["-e", $"\"{defaultSettingsPath}\""]);
                         progress?.Report($"使用默认导出设置: {defaultSettingsPath}");
                     }
                     else
                     {
-                        arguments.AddRange(new[]
-                        {
+                        arguments.AddRange([
                             "--export", "json",
                             "--export", "atlas",
                             "--export", "images"
-                        });
+                        ]);
                         progress?.Report($"未找到默认导出设置文件: {defaultSettingsPath}，使用默认命令行参数");
                     }
                 }
@@ -378,8 +375,8 @@ namespace SpineForge.Services
                     WorkingDirectory = Path.GetDirectoryName(actualInputFile), // 使用处理后的输入文件目录
 
                     // 关键：设置编码为 UTF-8
-                    StandardOutputEncoding = System.Text.Encoding.UTF8,
-                    StandardErrorEncoding = System.Text.Encoding.UTF8
+                    StandardOutputEncoding = Encoding.UTF8,
+                    StandardErrorEncoding = Encoding.UTF8
                 };
 
                 // 设置环境变量强制使用 UTF-8
@@ -391,8 +388,9 @@ namespace SpineForge.Services
                 // 修改日志显示，确保显示完整命令
                 progress?.Report($"执行命令: \"{processInfo.FileName}\" {processInfo.Arguments}");
 
-                using (var process = new Process { StartInfo = processInfo })
+                using (var process = new Process())
                 {
+                    process.StartInfo = processInfo;
                     var outputData = new List<string>();
                     var errorData = new List<string>();
 
@@ -568,7 +566,7 @@ namespace SpineForge.Services
                 byte[] bom = new byte[4];
                 using (var file = new FileStream(filePath, FileMode.Open, FileAccess.Read))
                 {
-                    file.Read(bom, 0, 4);
+                    file.ReadExactly(bom, 0, 4);
                 }
 
                 // 检查UTF-8 BOM (EF BB BF)
@@ -598,7 +596,7 @@ namespace SpineForge.Services
 
 
         private async Task ProcessExportedJsonAsync(string outputDir, string baseFileName,
-            ConversionSettings settings, IProgress<string> progress)
+            ConversionSettings settings, IProgress<string>? progress)
         {
             try
             {
@@ -609,7 +607,7 @@ namespace SpineForge.Services
                 progress?.Report($"重置音频路径: {settings.ResetAudioPaths}");
 
                 // 检查是否需要处理
-                if (!settings.ResetImagePaths && !settings.ResetAudioPaths)
+                if (settings is { ResetImagePaths: false, ResetAudioPaths: false })
                 {
                     progress?.Report("跳过 JSON 处理 - 未启用路径重置选项");
                     return;
@@ -684,7 +682,7 @@ namespace SpineForge.Services
         }
 
 
-        private string ModifySpineJson(string jsonContent, ConversionSettings settings, IProgress<string> progress,
+        private string ModifySpineJson(string jsonContent, ConversionSettings settings, IProgress<string>? progress,
             string originalFilePath = null)
         {
             try
@@ -806,7 +804,7 @@ namespace SpineForge.Services
         }
 
 
-        private string? GetValidSpineExecutablePath(string providedPath, IProgress<string> progress)
+        private string? GetValidSpineExecutablePath(string providedPath, IProgress<string>? progress)
         {
             // 1. 如果提供了路径，先验证
             if (!string.IsNullOrEmpty(providedPath))
@@ -852,7 +850,7 @@ namespace SpineForge.Services
             _tempFiles.Clear();
         }
 
-        private bool ValidateInputs(SpineAsset asset, ConversionSettings settings, IProgress<string> progress)
+        private bool ValidateInputs(SpineAsset asset, ConversionSettings settings, IProgress<string>? progress)
         {
             // 检查源文件
             if (string.IsNullOrEmpty(asset.FilePath) || !File.Exists(asset.FilePath))
@@ -887,13 +885,13 @@ namespace SpineForge.Services
             var arguments = new List<string>();
 
             // 基本参数
-            arguments.AddRange(new[] { "-i", $"\"{asset.FilePath}\"" });
-            arguments.AddRange(new[] { "-o", $"\"{settings.OutputDirectory}\"" });
+            arguments.AddRange(["-i", $"\"{asset.FilePath}\""]);
+            arguments.AddRange(["-o", $"\"{settings.OutputDirectory}\""]);
 
             // 创建临时导出设置文件
             var tempSettingsPath = CreateTempExportSettings(asset, settings);
             _tempFiles.Add(tempSettingsPath);
-            arguments.AddRange(new[] { "-e", $"\"{tempSettingsPath}\"" });
+            arguments.AddRange(["-e", $"\"{tempSettingsPath}\""]);
 
             return string.Join(" ", arguments);
         }
@@ -975,7 +973,7 @@ namespace SpineForge.Services
             {
                 WriteIndented = true,
                 DefaultIgnoreCondition = JsonIgnoreCondition.Never,
-                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
             };
 
             var json = JsonSerializer.Serialize(exportSettings, options);
@@ -1151,7 +1149,7 @@ namespace SpineForge.Services
         }
 
         private async Task<bool> ExecuteSpineConversion(string? spineExePath, string arguments,
-            IProgress<string> progress)
+            IProgress<string>? progress)
         {
             var processInfo = new ProcessStartInfo
             {
@@ -1164,7 +1162,8 @@ namespace SpineForge.Services
                 WorkingDirectory = Path.GetDirectoryName(spineExePath)
             };
 
-            using var process = new Process { StartInfo = processInfo };
+            using var process = new Process();
+            process.StartInfo = processInfo;
 
             var outputData = new List<string>();
             var errorData = new List<string>();
@@ -1279,54 +1278,5 @@ namespace SpineForge.Services
         }
 
         // 添加扫描目录方法的实现
-        public async Task<List<SpineAsset>> ScanDirectoryAsync(string directoryPath, IProgress<string> progress = null)
-        {
-            var assets = new List<SpineAsset>();
-
-            try
-            {
-                if (string.IsNullOrEmpty(directoryPath) || !Directory.Exists(directoryPath))
-                {
-                    progress?.Report("错误: 目录路径无效");
-                    return assets;
-                }
-
-                progress?.Report($"开始扫描目录: {directoryPath}");
-
-                // 搜索 .spine 文件
-                var spineFiles = Directory.GetFiles(directoryPath, "*.spine", SearchOption.AllDirectories);
-
-                progress?.Report($"找到 {spineFiles.Length} 个 Spine 文件");
-
-                foreach (var file in spineFiles)
-                {
-                    try
-                    {
-                        var asset = new SpineAsset
-                        {
-                            FilePath = file,
-                            Name = Path.GetFileNameWithoutExtension(file),
-                            Directory = Path.GetDirectoryName(file),
-                            Size = new FileInfo(file).Length,
-                            // 可以添加更多属性，如版本检测等
-                        };
-
-                        assets.Add(asset);
-                    }
-                    catch (Exception ex)
-                    {
-                        progress?.Report($"处理文件时出错 {file}: {ex.Message}");
-                    }
-                }
-
-                progress?.Report($"扫描完成，共找到 {assets.Count} 个有效的 Spine 资源");
-            }
-            catch (Exception ex)
-            {
-                progress?.Report($"扫描目录时发生错误: {ex.Message}");
-            }
-
-            return assets;
-        }
     }
 }

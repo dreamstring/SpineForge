@@ -310,7 +310,7 @@ public partial class MainViewModel : ObservableObject
         // var exportSettings = JsonSerializer.Deserialize<ExportSettings>(settingsContent);
         // ConversionSettings.ApplyExportSettings(exportSettings);
 
-        ConversionLog += $"{DateTime.Now:HH:mm:ss} - 已加载导出设置: {settingsPath}\n";
+        ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 已加载导出设置: {settingsPath}\n";
     }
 
     // 选择输出目录
@@ -423,18 +423,18 @@ public partial class MainViewModel : ObservableObject
 
         var progress = new Progress<string>(message =>
         {
-            ConversionLog += $"{DateTime.Now:HH:mm:ss} - {message}\n";
+            ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}\n";
             ConversionProgress = Math.Min(ConversionProgress + 10, 90);
         });
 
         try
         {
             // 记录开始转换的详细信息
-            ConversionLog += $"{DateTime.Now:HH:mm:ss} - 开始转换:\n";
-            ConversionLog += $"{DateTime.Now:HH:mm:ss} - Spine 可执行文件: {CurrentAsset.SpineExecutablePath}\n";
-            ConversionLog += $"{DateTime.Now:HH:mm:ss} - 源文件: {CurrentAsset.SpineFilePath}\n";
-            ConversionLog += $"{DateTime.Now:HH:mm:ss} - 目标版本: {SelectedTargetVersion.Version}\n";
-            ConversionLog += $"{DateTime.Now:HH:mm:ss} - 输出目录: {ConversionSettings.OutputDirectory}\n";
+            ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 开始转换:\n";
+            ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - Spine 可执行文件: {CurrentAsset.SpineExecutablePath}\n";
+            ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 源文件: {CurrentAsset.SpineFilePath}\n";
+            ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 目标版本: {SelectedTargetVersion.Version}\n";
+            ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 输出目录: {ConversionSettings.OutputDirectory}\n";
 
             // 创建用于转换的 SpineAsset 对象
             var assetForConversion = new SpineAsset
@@ -454,8 +454,8 @@ public partial class MainViewModel : ObservableObject
 
             if (success)
             {
-                ConversionLog += $"{DateTime.Now:HH:mm:ss} - 转换成功完成!\n";
-                ConversionLog += $"{DateTime.Now:HH:mm:ss} - 输出目录: {ConversionSettings.OutputDirectory}\n";
+                ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 转换成功完成!\n";
+                ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 输出目录: {ConversionSettings.OutputDirectory}\n";
             }
 
             await SaveConversionLogAsync(ConversionSettings.OutputDirectory, ConversionLog);
@@ -463,8 +463,8 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"转换过程中发生错误: {ex.Message}";
-            ConversionLog += $"{DateTime.Now:HH:mm:ss} - 错误: {ex.Message}\n";
-            ConversionLog += $"{DateTime.Now:HH:mm:ss} - 堆栈跟踪: {ex.StackTrace}\n";
+            ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 错误: {ex.Message}\n";
+            ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 堆栈跟踪: {ex.StackTrace}\n";
             ConversionProgress = 0;
 
             // *** 即使出错也保存日志 ***
@@ -612,15 +612,15 @@ public partial class MainViewModel : ObservableObject
         if (issues.Count == 0)
         {
             StatusMessage = "所有设置验证通过";
-            ConversionLog += $"{DateTime.Now:HH:mm:ss} - 设置验证通过\n";
+            ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 设置验证通过\n";
         }
         else
         {
             StatusMessage = "设置验证失败，请检查以下问题";
-            ConversionLog += $"{DateTime.Now:HH:mm:ss} - 设置验证失败:\n";
+            ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 设置验证失败:\n";
             foreach (var issue in issues)
             {
-                ConversionLog += $"{DateTime.Now:HH:mm:ss} {issue}\n";
+                ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {issue}\n";
             }
         }
     }
