@@ -7,7 +7,12 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using SpineForge.Models;
-using Microsoft.Win32; // 添加注册表支持
+using Microsoft.Win32;
+using System.Text.Json;
+using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.RegularExpressions;
+using System.Text.Unicode;
 
 namespace SpineForge.Services
 {
@@ -426,6 +431,7 @@ namespace SpineForge.Services
                         }
                         catch
                         {
+                            // ignored
                         }
 
                         return false;
@@ -460,6 +466,11 @@ namespace SpineForge.Services
                         if (!hasOutput)
                         {
                             progress?.Report("⚠ 警告: 未找到预期的输出文件，但命令执行成功");
+                        }
+
+                        if (settings.ResetImagePaths || settings.ResetAudioPaths)
+                        {
+                            await ProcessExportedJsonAsync(outputDir, baseFileName, settings, progress);
                         }
 
                         return true;
@@ -517,7 +528,7 @@ namespace SpineForge.Services
                 }
             }
         }
-        
+
         private static bool ContainsNonAsciiCharacters(string path)
         {
             return path.Any(c => c > 127);
@@ -549,6 +560,177 @@ namespace SpineForge.Services
             }
         }
 
+        private Encoding DetectFileEncoding(string filePath)
+        {
+            try
+            {
+                // 读取文件的前几个字节来检测BOM
+                byte[] bom = new byte[4];
+                using (var file = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+                {
+                    file.Read(bom, 0, 4);
+                }
+
+                // 检查UTF-8 BOM (EF BB BF)
+                if (bom[0] == 0xEF && bom[1] == 0xBB && bom[2] == 0xBF)
+                    return Encoding.UTF8;
+
+                // 检查UTF-16 LE BOM (FF FE)
+                if (bom[0] == 0xFF && bom[1] == 0xFE)
+                    return Encoding.Unicode;
+
+                // 检查UTF-16 BE BOM (FE FF)
+                if (bom[0] == 0xFE && bom[1] == 0xFF)
+                    return Encoding.BigEndianUnicode;
+
+                // 检查UTF-32 LE BOM (FF FE 00 00)
+                if (bom[0] == 0xFF && bom[1] == 0xFE && bom[2] == 0x00 && bom[3] == 0x00)
+                    return Encoding.UTF32;
+
+                // 默认返回UTF-8 without BOM
+                return new UTF8Encoding(false);
+            }
+            catch
+            {
+                return new UTF8Encoding(false);
+            }
+        }
+
+
+        private async Task ProcessExportedJsonAsync(string outputDir, string baseFileName,
+            ConversionSettings settings, IProgress<string> progress)
+        {
+            try
+            {
+                progress?.Report("=== 开始 JSON 后处理 ===");
+                progress?.Report($"输出目录: {outputDir}");
+                progress?.Report($"基础文件名: {baseFileName}");
+                progress?.Report($"重置图片路径: {settings.ResetImagePaths}");
+                progress?.Report($"重置音频路径: {settings.ResetAudioPaths}");
+
+                // 检查是否需要处理
+                if (!settings.ResetImagePaths && !settings.ResetAudioPaths)
+                {
+                    progress?.Report("跳过 JSON 处理 - 未启用路径重置选项");
+                    return;
+                }
+
+                // 查找导出的 JSON 文件
+                var jsonFile = Path.Combine(outputDir, $"{baseFileName}.json");
+                progress?.Report($"查找 JSON 文件: {jsonFile}");
+
+                if (!File.Exists(jsonFile))
+                {
+                    progress?.Report($"未找到 JSON 文件: {jsonFile}");
+
+                    // 列出目录中的所有文件进行调试
+                    if (Directory.Exists(outputDir))
+                    {
+                        var files = Directory.GetFiles(outputDir);
+                        progress?.Report($"目录中的文件: {string.Join(", ", files.Select(Path.GetFileName))}");
+                    }
+
+                    return;
+                }
+
+                progress?.Report($"✓ 找到 JSON 文件，大小: {new FileInfo(jsonFile).Length} 字节");
+
+                // *** 关键修改：检测文件编码 ***
+                var originalEncoding = DetectFileEncoding(jsonFile);
+                progress?.Report($"检测到文件编码: {originalEncoding.EncodingName}");
+
+                // *** 关键修改：使用检测到的编码读取文件 ***
+                string jsonContent = await File.ReadAllTextAsync(jsonFile, originalEncoding);
+                progress?.Report($"JSON 内容长度: {jsonContent.Length} 字符");
+
+                // 用正则表达式安全地提取路径信息进行调试
+                var imagesMatch = Regex.Match(jsonContent, @"""images""\s*:\s*""([^""]*)""");
+                if (imagesMatch.Success)
+                    progress?.Report($"原始 images 路径: {imagesMatch.Groups[1].Value}");
+
+                var audioMatch = Regex.Match(jsonContent, @"""audio""\s*:\s*""([^""]*)""");
+                if (audioMatch.Success)
+                    progress?.Report($"原始 audio 路径: {audioMatch.Groups[1].Value}");
+
+                // 修改 JSON
+                progress?.Report("开始修改 JSON...");
+                var modifiedJson = ModifySpineJson(jsonContent, settings, progress);
+                progress?.Report($"ModifySpineJson 返回结果长度: {modifiedJson?.Length ?? 0}");
+
+                if (!string.IsNullOrEmpty(modifiedJson))
+                {
+                    // 备份原文件
+                    var backupFile = jsonFile + ".backup";
+                    File.Copy(jsonFile, backupFile, true);
+                    progress?.Report($"✓ 已备份原文件: {Path.GetFileName(backupFile)}");
+
+                    // *** 关键修改：使用原始编码写回文件 ***
+                    await File.WriteAllTextAsync(jsonFile, modifiedJson, originalEncoding);
+                    progress?.Report($"✓ JSON 修改完成，已保持原始编码格式 ({originalEncoding.EncodingName})");
+                    progress?.Report($"新文件大小: {modifiedJson.Length} 字符");
+                }
+                else
+                {
+                    progress?.Report("JSON 修改失败 - 返回空内容");
+                }
+
+                progress?.Report("=== JSON 后处理完成 ===");
+            }
+            catch (Exception ex)
+            {
+                progress?.Report($"JSON 处理错误: {ex.Message}");
+                progress?.Report($"错误详情: {ex.StackTrace}");
+            }
+        }
+
+
+        private string ModifySpineJson(string jsonContent, ConversionSettings settings, IProgress<string> progress,
+            string originalFilePath = null)
+        {
+            try
+            {
+                string result = jsonContent;
+
+                if (settings.ResetImagePaths)
+                {
+                    var matches = Regex.Matches(result, @"""images""\s*:\s*""[^""]*""");
+                    progress?.Report($"找到 {matches.Count} 个 images 匹配项");
+                    foreach (Match match in matches)
+                    {
+                        progress?.Report($"匹配内容: {match.Value}");
+                    }
+
+                    result = Regex.Replace(result, @"""images""\s*:\s*""[^""]*""", @"""images"": ""./images/""");
+                    progress?.Report("✓ 已重置 images 路径为 './images/'");
+                }
+
+                if (settings.ResetAudioPaths)
+                {
+                    var matches = Regex.Matches(result, @"""audio""\s*:\s*""[^""]*""");
+                    progress?.Report($"找到 {matches.Count} 个 audio 匹配项");
+                    foreach (Match match in matches)
+                    {
+                        progress?.Report($"匹配内容: {match.Value}");
+                    }
+
+                    result = Regex.Replace(result, @"""audio""\s*:\s*""[^""]*""", @"""audio"": """"");
+                    progress?.Report("✓ 已重置 audio 路径为空字符串");
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                progress?.Report($"JSON 修改失败: {ex.Message}");
+                return jsonContent;
+            }
+        }
+
+        // 在保存文件时使用 UTF-8 with BOM
+        public void SaveModifiedJson(string filePath, string content)
+        {
+            File.WriteAllText(filePath, content, Encoding.UTF8);
+        }
 
         private string GetDefaultExportSettingsPath()
         {
@@ -591,6 +773,17 @@ namespace SpineForge.Services
 
                 if (success)
                 {
+                    progress?.Report("导出成功完成");
+
+                    // 添加 JSON 后处理
+                    if (settings.ResetImagePaths || settings.ResetAudioPaths)
+                    {
+                        progress?.Report("开始 JSON 后处理...");
+                        var baseFileName = Path.GetFileNameWithoutExtension(asset.FilePath);
+                        await ProcessExportedJsonAsync(settings.OutputDirectory, baseFileName, settings, progress);
+                        progress?.Report("JSON 后处理完成");
+                    }
+
                     progress?.Report("转换完成！");
                     return true;
                 }
@@ -611,6 +804,7 @@ namespace SpineForge.Services
                 CleanupTempFiles();
             }
         }
+
 
         private string? GetValidSpineExecutablePath(string providedPath, IProgress<string> progress)
         {
@@ -893,8 +1087,10 @@ namespace SpineForge.Services
                 var options = new JsonSerializerOptions
                 {
                     WriteIndented = true,
-                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                    DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+                    Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
                 };
+
                 var newJsonContent = JsonSerializer.Serialize(newSettings, options);
                 File.WriteAllText(tempJsonPath, newJsonContent);
 
@@ -952,43 +1148,6 @@ namespace SpineForge.Services
                 default:
                     return element.GetRawText();
             }
-        }
-
-        private string CreateExportSettings(ConversionSettings settings)
-        {
-            var exportSettings = new
-            {
-                skeleton = new { export = true, path = "", pretty = false },
-                animation = new { export = true, path = "" },
-                atlas = new { export = true, path = "", pretty = false },
-                texture = new { export = true, path = "" },
-                settings = new
-                {
-                    dataFormat = "json",
-                    textureFormat = "png",
-                    premultiplyAlpha = false,
-                    bleed = true,
-                    stripWhitespace = true,
-                    flattenPaths = false,
-                    nonessentialData = false,
-                    spineVersion = settings.TargetVersion
-                }
-            };
-
-            var tempPath = Path.Combine(Path.GetTempPath(), $"spine_export_{Guid.NewGuid()}.json");
-
-            var json = JsonSerializer.Serialize(exportSettings, new JsonSerializerOptions
-            {
-                WriteIndented = true,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
-
-            File.WriteAllText(tempPath, json);
-
-            // 跟踪临时文件
-            _tempFiles.Add(tempPath);
-
-            return tempPath;
         }
 
         private async Task<bool> ExecuteSpineConversion(string? spineExePath, string arguments,

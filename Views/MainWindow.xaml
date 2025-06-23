@@ -6,18 +6,18 @@
                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
                  xmlns:vm="clr-namespace:SpineForge.ViewModels"
                  xmlns:converters="clr-namespace:SpineForge.Converters"
-                 Title="SpineForge - Spine 资产转换器"
+                 Title="SpineForge"
                  Icon="/icon.ico"
-                 Width="800" Height="1040"
+                 Width="800" Height="1050"
                  MinWidth="500" MinHeight="500"
                  WindowStartupLocation="CenterScreen"
                  ExtendsContentIntoTitleBar="True"
                  WindowBackdropType="Mica">
-    
+
     <ui:FluentWindow.Resources>
-        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
-        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter" />
+        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
     </ui:FluentWindow.Resources>
 
     <Grid>
@@ -28,12 +28,12 @@
 
         <!-- 标题栏 -->
         <ui:TitleBar Grid.Row="0"
-                     Title="SpineForge"
+                     Title="{Binding WindowTitle}"
                      ShowMaximize="True"
                      ShowMinimize="True"
                      ShowClose="True"
                      CanMaximize="True"
-                     Icon="pack://application:,,,/icon.ico"/>
+                     Icon="pack://application:,,,/icon.ico" />
 
         <!-- 主内容 -->
         <ScrollViewer Grid.Row="1" Margin="20">
@@ -214,6 +214,36 @@
                                        Padding="10,5" />
                         </Grid>
 
+                        <!-- 路径重置选项 -->
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <ui:TextBlock Grid.Column="0"
+                                          Text="路径重置："
+                                          VerticalAlignment="Center"
+                                          FontWeight="Medium"
+                                          FontSize="12" />
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,6,0">
+                                <CheckBox Content="重置图片索引路径"
+                                          IsChecked="{Binding ConversionSettings.ResetImagePaths}"
+                                          FontSize="12"
+                                          Margin="0,0,20,0"
+                                          VerticalAlignment="Center" />
+
+                                <CheckBox Content="重置音频索引路径"
+                                          IsChecked="{Binding ConversionSettings.ResetAudioPaths}"
+                                          FontSize="12"
+                                          VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Grid>
+
+
                         <!-- 图集尺寸设置 -->
                         <Grid Margin="0,0,0,8">
                             <Grid.ColumnDefinitions>
@@ -279,13 +309,13 @@
                                           HorizontalAlignment="Stretch"
                                           FontSize="12" />
                             </StackPanel>
-                            
+
                             <ui:SymbolIcon Grid.Column="1"
                                            Symbol="ArrowRight24"
                                            HorizontalAlignment="Center"
-                                           VerticalAlignment="Bottom" 
+                                           VerticalAlignment="Bottom"
                                            Margin="8,0,8,10" />
-                            
+
                             <StackPanel Grid.Column="2">
                                 <ui:TextBlock Text="目标版本:" FontWeight="Medium" Margin="0,0,0,3" FontSize="12" />
                                 <ComboBox ItemsSource="{Binding AvailableVersions}"
@@ -347,7 +377,7 @@
                 <ui:Card Margin="0,0,0,10"
                          Visibility="{Binding ConversionLog, Converter={StaticResource StringToVisibilityConverter}}">
                     <StackPanel Margin="15">
-                        <ui:TextBlock Text="📋 转换日志"
+                        <ui:TextBlock Text="转换日志"
                                       FontSize="14"
                                       FontWeight="SemiBold"
                                       Margin="0,0,0,10" />

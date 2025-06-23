@@ -21,7 +21,29 @@ namespace SpineForge.Models
         private TextureFormat _textureFormat = TextureFormat.PNG;
         private int _maxWidth = 512;
         private int _maxHeight = 512;
+        private bool _resetImagePaths = true;  
+        private bool _resetAudioPaths = true;  
 
+        public bool ResetImagePaths
+        {
+            get => _resetImagePaths;
+            set
+            {
+                _resetImagePaths = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool ResetAudioPaths
+        {
+            get => _resetAudioPaths;
+            set
+            {
+                _resetAudioPaths = value;
+                OnPropertyChanged();
+            }
+        }
+        
         public int MaxWidth
         {
             get => _maxWidth;

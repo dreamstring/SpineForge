@@ -2,20 +2,16 @@
 using CommunityToolkit.Mvvm.Input;
 using SpineForge.Models;
 using SpineForge.Services;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+using System.Reflection;
+using System.Text;
 
 namespace SpineForge.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
-    
     private readonly ISpineConverterService _converterService;
     private readonly ISettingsService _settingsService;
 
@@ -47,11 +43,29 @@ public partial class MainViewModel : ObservableObject
             ? "未设置"
             : ConversionSettings.OutputDirectory;
 
+    /// <summary>
+    /// 应用程序版本号
+    /// </summary>
+    public string AppVersion 
+    { 
+        get 
+        {
+            var version = Assembly.GetExecutingAssembly().GetName().Version;
+            return version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "1.0.0";
+        }
+    }
+
+    /// <summary>
+    /// 窗口标题（包含版本号）
+    /// </summary>
+    public string WindowTitle => $"SpineForge {AppVersion}";
+
+
     // 验证属性
     public bool CanConvert => CurrentAsset?.IsReady == true &&
                               SelectedTargetVersion != null &&
                               !IsConverting;
-    
+
     public string ExportSettingsPathDisplayProxy => ConversionSettings?.ExportSettingsPathDisplay ?? "使用默认设置";
 
     public MainViewModel(ISpineConverterService converterService, ISettingsService settingsService)
@@ -100,9 +114,9 @@ public partial class MainViewModel : ObservableObject
         // 设置默认选择
         if (AvailableVersions.Count > 0)
         {
-            SelectedTargetVersion = AvailableVersions.FirstOrDefault(v => v.Version == "4.1") 
+            SelectedTargetVersion = AvailableVersions.FirstOrDefault(v => v.Version == "4.1")
                                     ?? AvailableVersions[1];
-            SelectedSourceVersion = AvailableVersions.FirstOrDefault(v => v.Version == "3.8") 
+            SelectedSourceVersion = AvailableVersions.FirstOrDefault(v => v.Version == "3.8")
                                     ?? AvailableVersions[1];
         }
     }
@@ -132,11 +146,11 @@ public partial class MainViewModel : ObservableObject
         // 移除旧的监听
         if (_conversionSettings != null)
             _conversionSettings.PropertyChanged -= OnConversionSettingsPropertyChanged;
-            
+
         // 添加新的监听
         if (value != null)
             value.PropertyChanged += OnConversionSettingsPropertyChanged;
-            
+
         // 通知显示属性更新
         OnPropertyChanged(nameof(OutputDirectoryDisplay));
     }
@@ -265,7 +279,7 @@ public partial class MainViewModel : ObservableObject
 
                 await LoadExportSettingsAsync(openFileDialog.FileName);
                 StatusMessage = "导出设置文件加载成功";
-                
+
                 // 强制刷新显示
                 OnPropertyChanged(nameof(ExportSettingsPathDisplayProxy));
             }
@@ -443,6 +457,8 @@ public partial class MainViewModel : ObservableObject
                 ConversionLog += $"{DateTime.Now:HH:mm:ss} - 转换成功完成!\n";
                 ConversionLog += $"{DateTime.Now:HH:mm:ss} - 输出目录: {ConversionSettings.OutputDirectory}\n";
             }
+
+            await SaveConversionLogAsync(ConversionSettings.OutputDirectory, ConversionLog);
         }
         catch (Exception ex)
         {
@@ -450,6 +466,16 @@ public partial class MainViewModel : ObservableObject
             ConversionLog += $"{DateTime.Now:HH:mm:ss} - 错误: {ex.Message}\n";
             ConversionLog += $"{DateTime.Now:HH:mm:ss} - 堆栈跟踪: {ex.StackTrace}\n";
             ConversionProgress = 0;
+
+            // *** 即使出错也保存日志 ***
+            try
+            {
+                await SaveConversionLogAsync(ConversionSettings.OutputDirectory, ConversionLog);
+            }
+            catch
+            {
+                // 静默处理日志保存错误，避免干扰主要错误信息
+            }
         }
         finally
         {
@@ -596,6 +622,42 @@ public partial class MainViewModel : ObservableObject
             {
                 ConversionLog += $"{DateTime.Now:HH:mm:ss} {issue}\n";
             }
+        }
+    }
+
+    private async Task SaveConversionLogAsync(string outputDir, string logContent)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(logContent) || string.IsNullOrWhiteSpace(outputDir))
+                return;
+
+            // 确保输出目录存在
+            if (!Directory.Exists(outputDir))
+                Directory.CreateDirectory(outputDir);
+
+            // 生成日志文件名：SpineForge_时间.log
+            string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            string logFileName = $"SpineForge_{timestamp}.log";
+            string logFilePath = Path.Combine(outputDir, logFileName);
+
+            // 添加日志头部信息
+            string logHeader = $"SpineForge 转换日志\n";
+            logHeader += $"生成时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss}\n";
+            logHeader += $"输出目录: {outputDir}\n";
+            logHeader += new string('=', 50) + "\n\n";
+
+            string fullLogContent = logHeader + logContent;
+
+            // 写入日志文件
+            await File.WriteAllTextAsync(logFilePath, fullLogContent, Encoding.UTF8);
+
+            // 在日志中显示保存成功信息
+            ConversionLog += $"\n✓ 转换日志已保存到: {logFileName}";
+        }
+        catch (Exception ex)
+        {
+            ConversionLog += $"\n⚠ 保存日志文件失败: {ex.Message}";
         }
     }
 }
