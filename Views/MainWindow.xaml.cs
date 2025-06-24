@@ -52,12 +52,6 @@ public partial class MainWindow : FluentWindow
         Loaded += MainWindow_Loaded;
     }
 
-    private void MainWindow_Loaded(object sender, RoutedEventArgs e)
-    {
-        // 为所有TextBox设置拖拽事件处理
-        SetupTextBoxDragHandling();
-    }
-
     private void SetupTextBoxDragHandling()
     {
         var textBoxes = FindVisualChildren<Wpf.Ui.Controls.TextBox>(this);
@@ -325,10 +319,10 @@ public partial class MainWindow : FluentWindow
 
     private void SetTextBoxHoverStyle(Wpf.Ui.Controls.TextBox textBox)
     {
-        textBox.BorderBrush = new SolidColorBrush(Color.FromArgb(120, 30, 144, 255)); 
+        textBox.BorderBrush = new SolidColorBrush(Color.FromArgb(120, 30, 144, 255));
         textBox.Background = new SolidColorBrush(Color.FromArgb(40, 30, 144, 255));
     }
-    
+
     private void ResetTextBoxHoverStyle(Wpf.Ui.Controls.TextBox textBox)
     {
         if (!string.IsNullOrEmpty(_currentDragExtension) && IsValidDropTarget(textBox, _currentDragExtension))
@@ -641,5 +635,56 @@ public partial class MainWindow : FluentWindow
 
         // 清空保存的样式
         _originalLabelStyles.Clear();
+    }
+
+    private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel?.AppSettings != null)
+        {
+            var settings = _viewModel.AppSettings;
+            
+            Width = settings.WindowWidth;
+            Height = settings.WindowHeight;
+            Left = settings.WindowLeft;
+            Top = settings.WindowTop;
+            
+            if (settings.WindowMaximized)
+            {
+                WindowState = WindowState.Maximized;
+            }
+            
+            // Console.WriteLine($"Applied settings: W={Width}, H={Height}, L={Left}, T={Top}");
+        }
+
+        SetupTextBoxDragHandling();
+    }
+
+    private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (_viewModel?.AppSettings != null && WindowState == WindowState.Normal && IsLoaded)
+        {
+            _viewModel.AppSettings.WindowWidth = ActualWidth;
+            _viewModel.AppSettings.WindowHeight = ActualHeight;
+            _viewModel.AppSettings.Save();
+        }
+    }
+
+    private void MainWindow_LocationChanged(object sender, EventArgs e)
+    {
+        if (_viewModel?.AppSettings != null && WindowState == WindowState.Normal && IsLoaded)
+        {
+            _viewModel.AppSettings.WindowLeft = Left;
+            _viewModel.AppSettings.WindowTop = Top;
+            _viewModel.AppSettings.Save();
+        }
+    }
+
+    private void MainWindow_StateChanged(object sender, EventArgs e)
+    {
+        if (_viewModel?.AppSettings != null && IsLoaded)
+        {
+            _viewModel.AppSettings.WindowMaximized = WindowState == WindowState.Maximized;
+            _viewModel.AppSettings.Save();
+        }
     }
 }

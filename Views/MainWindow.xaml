@@ -6,14 +6,21 @@
                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
                  xmlns:vm="clr-namespace:SpineForge.ViewModels"
                  xmlns:converters="clr-namespace:SpineForge.Converters"
-                 Title="SpineForge"
+                 Title="{Binding WindowTitle}"
                  Icon="/icon.ico"
-                 Width="800" Height="1050"
+                 Width="{Binding AppSettings.WindowWidth, Mode=TwoWay, FallbackValue=800}"
+                 Height="{Binding AppSettings.WindowHeight, Mode=TwoWay, FallbackValue=1050}"
+                 Left="{Binding AppSettings.WindowLeft, Mode=TwoWay}"
+                 Top="{Binding AppSettings.WindowTop, Mode=TwoWay}"
                  MinWidth="500" MinHeight="500"
-                 WindowStartupLocation="CenterScreen"
+                 WindowStartupLocation="Manual"
                  ExtendsContentIntoTitleBar="True"
-                 WindowBackdropType="Mica">
-
+                 WindowBackdropType="Mica"
+                 Loaded="MainWindow_Loaded"
+                 LocationChanged="MainWindow_LocationChanged"
+                 SizeChanged="MainWindow_SizeChanged"
+                 StateChanged="MainWindow_StateChanged">
+    
     <ui:FluentWindow.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter" />

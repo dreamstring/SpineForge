@@ -15,8 +15,9 @@ public partial class MainViewModel : ObservableObject
     private readonly ISpineConverterService _converterService;
     private readonly ISettingsService _settingsService;
 
-    [ObservableProperty] private SpineAsset _currentAsset;
-    [ObservableProperty] private ConversionSettings _conversionSettings;
+    [ObservableProperty] private SpineAsset _currentAsset = new();
+    [ObservableProperty] private ConversionSettings _conversionSettings = new();
+    [ObservableProperty] private AppSettings _appSettings = new(); // 新增
     [ObservableProperty] private string _statusMessage = "请先选择 Spine.com 可执行文件";
     [ObservableProperty] private string _conversionLog = string.Empty;
     [ObservableProperty] private bool _isConverting = false;
@@ -27,28 +28,30 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private SpineVersion? _selectedTargetVersion;
     [ObservableProperty] private ObservableCollection<SpineVersion> _availableVersions = new();
 
-    // 用于 UI 绑定的显示属性
+    // 用于 UI 绑定的显示属性（简化为计算属性）
     public string SpineExecutablePathDisplay =>
-        string.IsNullOrEmpty(CurrentAsset?.SpineExecutablePath)
-            ? "未选择"
-            : CurrentAsset.SpineExecutablePath;
+        string.IsNullOrEmpty(CurrentAsset?.SpineExecutablePath) ? "未选择" : CurrentAsset.SpineExecutablePath;
 
     public string? SpineFilePathDisplay =>
-        string.IsNullOrEmpty(CurrentAsset?.SpineFilePath)
-            ? "未选择"
-            : CurrentAsset.SpineFilePath;
+        string.IsNullOrEmpty(CurrentAsset?.SpineFilePath) ? "未选择" : CurrentAsset.SpineFilePath;
 
     public string? OutputDirectoryDisplay =>
-        string.IsNullOrEmpty(ConversionSettings?.OutputDirectory)
-            ? "未设置"
-            : ConversionSettings.OutputDirectory;
+        string.IsNullOrEmpty(ConversionSettings?.OutputDirectory) ? "未设置" : ConversionSettings.OutputDirectory;
+
+    public string ExportSettingsPathDisplayProxy =>
+        ConversionSettings?.ExportSettingsPathDisplay ?? "使用默认设置";
+
+    // 验证属性
+    public bool CanConvert => CurrentAsset?.IsReady == true &&
+                              SelectedTargetVersion != null &&
+                              !IsConverting;
 
     /// <summary>
     /// 应用程序版本号
     /// </summary>
-    public string AppVersion 
-    { 
-        get 
+    public string AppVersion
+    {
+        get
         {
             var version = Assembly.GetExecutingAssembly().GetName().Version;
             return version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "1.0.0";
@@ -60,25 +63,15 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     public string WindowTitle => $"SpineForge {AppVersion}";
 
-
-    // 验证属性
-    public bool CanConvert => CurrentAsset?.IsReady == true &&
-                              SelectedTargetVersion != null &&
-                              !IsConverting;
-
-    public string ExportSettingsPathDisplayProxy => ConversionSettings?.ExportSettingsPathDisplay ?? "使用默认设置";
-
     public MainViewModel(ISpineConverterService converterService, ISettingsService settingsService)
     {
         _converterService = converterService ?? throw new ArgumentNullException(nameof(converterService));
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
 
-        // 初始化属性
-        _currentAsset = new SpineAsset();
-        _conversionSettings = new ConversionSettings();
-
-        // 添加 ConversionSettings 属性变化监听
-        _conversionSettings.PropertyChanged += OnConversionSettingsPropertyChanged;
+        // 订阅属性变化以自动保存
+        CurrentAsset.PropertyChanged += OnCurrentAssetPropertyChanged;
+        ConversionSettings.PropertyChanged += OnConversionSettingsPropertyChanged;
+        AppSettings.PropertyChanged += OnAppSettingsPropertyChanged;
 
         // 初始化可用版本
         InitializeAvailableVersions();
@@ -89,6 +82,53 @@ public partial class MainViewModel : ObservableObject
             await LoadSavedSettingsAsync();
             AutoDetectSpineExecutable();
         });
+    }
+
+    // 自动保存事件处理
+    private async void OnCurrentAssetPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // 通知相关显示属性更新
+        if (e.PropertyName == nameof(CurrentAsset.SpineExecutablePath))
+        {
+            OnPropertyChanged(nameof(SpineExecutablePathDisplay));
+            OnPropertyChanged(nameof(CanConvert));
+        }
+        else if (e.PropertyName == nameof(CurrentAsset.SpineFilePath))
+        {
+            OnPropertyChanged(nameof(SpineFilePathDisplay));
+            OnPropertyChanged(nameof(CanConvert));
+        }
+        else if (e.PropertyName == nameof(CurrentAsset.IsReady))
+        {
+            OnPropertyChanged(nameof(CanConvert));
+        }
+
+        // 自动保存
+        await SaveCurrentAssetAsync();
+    }
+
+    private async void OnConversionSettingsPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // 通知相关显示属性更新
+        if (e.PropertyName == nameof(ConversionSettings.OutputDirectory))
+        {
+            OnPropertyChanged(nameof(OutputDirectoryDisplay));
+        }
+        else if (e.PropertyName == nameof(ConversionSettings.ExportSettingsPathDisplay) ||
+                 e.PropertyName == nameof(ConversionSettings.UseDefaultSettings) ||
+                 e.PropertyName == nameof(ConversionSettings.ExportSettingsPath))
+        {
+            OnPropertyChanged(nameof(ExportSettingsPathDisplayProxy));
+        }
+
+        // 自动保存
+        await SaveConversionSettingsAsync();
+    }
+
+    private async void OnAppSettingsPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // 自动保存应用设置
+        await SaveAppSettingsAsync();
     }
 
     // 初始化可用版本
@@ -110,56 +150,22 @@ public partial class MainViewModel : ObservableObject
         {
             AvailableVersions.Add(version);
         }
-
-        // 设置默认选择
-        if (AvailableVersions.Count > 0)
-        {
-            SelectedTargetVersion = AvailableVersions.FirstOrDefault(v => v.Version == "4.1")
-                                    ?? AvailableVersions[1];
-            SelectedSourceVersion = AvailableVersions.FirstOrDefault(v => v.Version == "3.8")
-                                    ?? AvailableVersions[1];
-        }
     }
 
-    // 属性更改通知
-    partial void OnCurrentAssetChanged(SpineAsset value)
+    // 版本选择变化时同步到 AppSettings 和 ConversionSettings
+    partial void OnSelectedSourceVersionChanged(SpineVersion? value)
     {
-        OnPropertyChanged(nameof(SpineExecutablePathDisplay));
-        OnPropertyChanged(nameof(SpineFilePathDisplay));
-        OnPropertyChanged(nameof(CanConvert));
-    }
-
-    // 添加 ConversionSettings 属性变化监听方法
-    private void OnConversionSettingsPropertyChanged(object sender, PropertyChangedEventArgs e)
-    {
-        // 当 ConversionSettings 的相关属性变化时，通知显示属性更新
-        if (e.PropertyName == nameof(ConversionSettings.OutputDirectory))
-        {
-            OnPropertyChanged(nameof(OutputDirectoryDisplay));
-        }
-        // ExportSettingsPathDisplay 现在由 ConversionSettings 自己处理，不需要在这里通知
-    }
-
-    // 修改 OnConversionSettingsChanged 方法
-    partial void OnConversionSettingsChanged(ConversionSettings value)
-    {
-        // 移除旧的监听
-        if (_conversionSettings != null)
-            _conversionSettings.PropertyChanged -= OnConversionSettingsPropertyChanged;
-
-        // 添加新的监听
         if (value != null)
-            value.PropertyChanged += OnConversionSettingsPropertyChanged;
-
-        // 通知显示属性更新
-        OnPropertyChanged(nameof(OutputDirectoryDisplay));
+        {
+            ConversionSettings.SelectedSourceVersion = value.Version;
+        }
     }
 
     partial void OnSelectedTargetVersionChanged(SpineVersion? value)
     {
         if (value != null)
         {
-            ConversionSettings.TargetVersion = value.Version;
+            ConversionSettings.SelectedTargetVersion = value.Version;
         }
 
         OnPropertyChanged(nameof(CanConvert));
@@ -175,13 +181,96 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
+            // 移除旧的事件监听
+            CurrentAsset.PropertyChanged -= OnCurrentAssetPropertyChanged;
+            ConversionSettings.PropertyChanged -= OnConversionSettingsPropertyChanged;
+            AppSettings.PropertyChanged -= OnAppSettingsPropertyChanged;
+
+            // 加载设置
             CurrentAsset = await _settingsService.LoadSpineAssetAsync();
             ConversionSettings = await _settingsService.LoadConversionSettingsAsync();
+            AppSettings = await _settingsService.LoadAppSettingsAsync();
+
+            // 重新添加事件监听
+            CurrentAsset.PropertyChanged += OnCurrentAssetPropertyChanged;
+            ConversionSettings.PropertyChanged += OnConversionSettingsPropertyChanged;
+            AppSettings.PropertyChanged += OnAppSettingsPropertyChanged;
+
+            // 恢复版本选择
+            if (!string.IsNullOrEmpty(ConversionSettings.SelectedSourceVersion))
+            {
+                SelectedSourceVersion =
+                    AvailableVersions.FirstOrDefault(v => v.Version == ConversionSettings.SelectedSourceVersion);
+            }
+
+            if (!string.IsNullOrEmpty(ConversionSettings.SelectedTargetVersion))
+            {
+                SelectedTargetVersion =
+                    AvailableVersions.FirstOrDefault(v => v.Version == ConversionSettings.SelectedTargetVersion);
+            }
+
+            // 如果没有保存的版本选择，设置默认值
+            if (SelectedTargetVersion == null && AvailableVersions.Count > 0)
+            {
+                SelectedTargetVersion =
+                    AvailableVersions.FirstOrDefault(v => v.Version == "4.1") ?? AvailableVersions[0];
+            }
+
+            if (SelectedSourceVersion == null && AvailableVersions.Count > 0)
+            {
+                SelectedSourceVersion =
+                    AvailableVersions.FirstOrDefault(v => v.Version == "3.8") ?? AvailableVersions[0];
+            }
+
+            // 通知所有显示属性更新
+            OnPropertyChanged(nameof(SpineExecutablePathDisplay));
+            OnPropertyChanged(nameof(SpineFilePathDisplay));
+            OnPropertyChanged(nameof(OutputDirectoryDisplay));
+            OnPropertyChanged(nameof(ExportSettingsPathDisplayProxy));
+            OnPropertyChanged(nameof(CanConvert));
+
             UpdateStatusMessage();
         }
         catch (Exception ex)
         {
             StatusMessage = $"加载设置时出错: {ex.Message}";
+        }
+    }
+
+    // 独立的保存方法（避免在属性变化时重复保存）
+    private async Task SaveCurrentAssetAsync()
+    {
+        try
+        {
+            await _settingsService.SaveSpineAssetAsync(CurrentAsset);
+        }
+        catch
+        {
+            // 静默处理保存错误
+        }
+    }
+
+    private async Task SaveConversionSettingsAsync()
+    {
+        try
+        {
+            await _settingsService.SaveConversionSettingsAsync(ConversionSettings);
+        }
+        catch
+        {
+            // 静默处理保存错误
+        }
+    }
+
+    private async Task SaveAppSettingsAsync()
+    {
+        try
+        {
+            await _settingsService.SaveAppSettingsAsync(AppSettings);
+        }
+        catch
+        {
+            // 静默处理保存错误
         }
     }
 
@@ -205,7 +294,6 @@ public partial class MainViewModel : ObservableObject
             if (File.Exists(path))
             {
                 CurrentAsset.SpineExecutablePath = path;
-                SaveSettings();
                 break;
             }
         }
@@ -227,12 +315,6 @@ public partial class MainViewModel : ObservableObject
         if (openFileDialog.ShowDialog() == DialogResult.OK)
         {
             CurrentAsset.SpineExecutablePath = openFileDialog.FileName;
-
-            // 手动触发属性更改通知
-            OnPropertyChanged(nameof(SpineExecutablePathDisplay));
-            OnPropertyChanged(nameof(CurrentAsset));
-
-            SaveSettings();
             UpdateStatusMessage();
         }
     }
@@ -251,11 +333,6 @@ public partial class MainViewModel : ObservableObject
         if (openFileDialog.ShowDialog() == DialogResult.OK)
         {
             CurrentAsset.SpineFilePath = openFileDialog.FileName;
-
-            // 手动触发属性更改通知
-            OnPropertyChanged(nameof(SpineFilePathDisplay));
-            OnPropertyChanged(nameof(CurrentAsset));
-
             UpdateStatusMessage();
         }
     }
@@ -279,9 +356,6 @@ public partial class MainViewModel : ObservableObject
 
                 await LoadExportSettingsAsync(openFileDialog.FileName);
                 StatusMessage = "导出设置文件加载成功";
-
-                // 强制刷新显示
-                OnPropertyChanged(nameof(ExportSettingsPathDisplayProxy));
             }
             catch (Exception ex)
             {
@@ -290,27 +364,6 @@ public partial class MainViewModel : ObservableObject
                 ConversionSettings.UseDefaultSettings = true;
             }
         }
-    }
-
-    // 添加加载导出设置的方法
-    private async Task LoadExportSettingsAsync(string settingsPath)
-    {
-        if (!File.Exists(settingsPath))
-        {
-            throw new FileNotFoundException("设置文件不存在");
-        }
-
-        // 这里需要根据您的设置文件格式来解析
-        // 例如如果是 JSON 格式：
-        var settingsContent = await File.ReadAllTextAsync(settingsPath);
-
-        // 解析设置文件并应用到 ConversionSettings
-        // 具体实现取决于您的设置文件格式
-        // 例如：
-        // var exportSettings = JsonSerializer.Deserialize<ExportSettings>(settingsContent);
-        // ConversionSettings.ApplyExportSettings(exportSettings);
-
-        ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 已加载导出设置: {settingsPath}\n";
     }
 
     // 选择输出目录
@@ -331,14 +384,63 @@ public partial class MainViewModel : ObservableObject
         if (folderDialog.ShowDialog() == DialogResult.OK)
         {
             ConversionSettings.OutputDirectory = folderDialog.SelectedPath;
-
-            // 手动触发属性更改通知
-            OnPropertyChanged(nameof(OutputDirectoryDisplay));
-            OnPropertyChanged(nameof(ConversionSettings));
         }
     }
 
-    // 开始转换
+    // 清除导出设置
+    [RelayCommand]
+    private void ClearExportSettings()
+    {
+        ConversionSettings.ExportSettingsPath = string.Empty;
+        ConversionSettings.UseDefaultSettings = true;
+    }
+
+    // 清除输出目录
+    [RelayCommand]
+    private void ClearOutputDirectory()
+    {
+        ConversionSettings.OutputDirectory = string.Empty;
+    }
+
+    // 重置所有设置
+    [RelayCommand]
+    private async Task ResetSettings()
+    {
+        // 移除事件监听
+        CurrentAsset.PropertyChanged -= OnCurrentAssetPropertyChanged;
+        ConversionSettings.PropertyChanged -= OnConversionSettingsPropertyChanged;
+        AppSettings.PropertyChanged -= OnAppSettingsPropertyChanged;
+
+        // 重置对象
+        CurrentAsset = new SpineAsset();
+        ConversionSettings = new ConversionSettings();
+        AppSettings = new AppSettings();
+        SelectedSourceVersion = null;
+        SelectedTargetVersion = AvailableVersions.FirstOrDefault();
+        ConversionLog = string.Empty;
+        ConversionProgress = 0;
+
+        // 重新添加事件监听
+        CurrentAsset.PropertyChanged += OnCurrentAssetPropertyChanged;
+        ConversionSettings.PropertyChanged += OnConversionSettingsPropertyChanged;
+        AppSettings.PropertyChanged += OnAppSettingsPropertyChanged;
+
+        // 保存重置后的设置
+        await SaveCurrentAssetAsync();
+        await SaveConversionSettingsAsync();
+        await SaveAppSettingsAsync();
+
+        // 通知所有显示属性更新
+        OnPropertyChanged(nameof(SpineExecutablePathDisplay));
+        OnPropertyChanged(nameof(SpineFilePathDisplay));
+        OnPropertyChanged(nameof(OutputDirectoryDisplay));
+        OnPropertyChanged(nameof(ExportSettingsPathDisplayProxy));
+        OnPropertyChanged(nameof(CanConvert));
+
+        UpdateStatusMessage();
+    }
+
+    // 其他命令方法保持不变...
     [RelayCommand]
     private async Task StartConversionAsync()
     {
@@ -441,7 +543,7 @@ public partial class MainViewModel : ObservableObject
             {
                 SpineExecutablePath = CurrentAsset.SpineExecutablePath,
                 SpineFilePath = CurrentAsset.SpineFilePath,
-                FilePath = CurrentAsset.SpineFilePath // 确保 FilePath 也被设置
+                FilePath = CurrentAsset.SpineFilePath
             };
 
             // 设置转换设置中的目标版本
@@ -467,14 +569,13 @@ public partial class MainViewModel : ObservableObject
             ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 堆栈跟踪: {ex.StackTrace}\n";
             ConversionProgress = 0;
 
-            // *** 即使出错也保存日志 ***
             try
             {
                 await SaveConversionLogAsync(ConversionSettings.OutputDirectory, ConversionLog);
             }
             catch
             {
-                // 静默处理日志保存错误，避免干扰主要错误信息
+                // 静默处理日志保存错误
             }
         }
         finally
@@ -483,26 +584,6 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    // 清除导出设置
-    [RelayCommand]
-    private void ClearExportSettings()
-    {
-        ConversionSettings.ExportSettingsPath = string.Empty;
-        ConversionSettings.UseDefaultSettings = true;
-        // 不需要手动通知，ConversionSettings 会自动处理
-    }
-
-    // 清除输出目录
-    [RelayCommand]
-    private void ClearOutputDirectory()
-    {
-        ConversionSettings.OutputDirectory = string.Empty;
-
-        OnPropertyChanged(nameof(OutputDirectoryDisplay));
-        OnPropertyChanged(nameof(ConversionSettings));
-    }
-
-    // 打开输出目录
     [RelayCommand]
     private void OpenOutputDirectory()
     {
@@ -524,69 +605,12 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    // 清除转换日志
     [RelayCommand]
     private void ClearConversionLog()
     {
         ConversionLog = string.Empty;
     }
 
-    // 更新状态消息
-    private void UpdateStatusMessage()
-    {
-        if (!CurrentAsset.IsSpineExecutableExists)
-        {
-            StatusMessage = "请先选择 Spine.com 可执行文件";
-        }
-        else if (!CurrentAsset.IsSpineFileExists)
-        {
-            StatusMessage = "请选择要转换的 Spine 项目文件";
-        }
-        else if (SelectedTargetVersion == null)
-        {
-            StatusMessage = "请选择目标版本";
-        }
-        else
-        {
-            StatusMessage = "准备就绪，可以开始转换";
-        }
-    }
-
-    // 保存设置
-    private async void SaveSettings()
-    {
-        try
-        {
-            await _settingsService.SaveSpineAssetAsync(CurrentAsset);
-            await _settingsService.SaveConversionSettingsAsync(ConversionSettings);
-        }
-        catch
-        {
-            // 忽略保存错误
-        }
-    }
-
-    // 重置所有设置
-    [RelayCommand]
-    private void ResetSettings()
-    {
-        CurrentAsset = new SpineAsset();
-        ConversionSettings = new ConversionSettings();
-        SelectedSourceVersion = null;
-        SelectedTargetVersion = AvailableVersions.FirstOrDefault();
-        ConversionLog = string.Empty;
-        ConversionProgress = 0;
-
-        // 触发所有显示属性的更新
-        OnPropertyChanged(nameof(SpineExecutablePathDisplay));
-        OnPropertyChanged(nameof(SpineFilePathDisplay));
-        OnPropertyChanged(nameof(OutputDirectoryDisplay));
-        OnPropertyChanged(nameof(CanConvert));
-
-        UpdateStatusMessage();
-    }
-
-    // 验证设置
     [RelayCommand]
     private void ValidateSettings()
     {
@@ -625,6 +649,38 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    // 私有辅助方法
+    private void UpdateStatusMessage()
+    {
+        if (!CurrentAsset.IsSpineExecutableExists)
+        {
+            StatusMessage = "请先选择 Spine.com 可执行文件";
+        }
+        else if (!CurrentAsset.IsSpineFileExists)
+        {
+            StatusMessage = "请选择要转换的 Spine 项目文件";
+        }
+        else if (SelectedTargetVersion == null)
+        {
+            StatusMessage = "请选择目标版本";
+        }
+        else
+        {
+            StatusMessage = "准备就绪，可以开始转换";
+        }
+    }
+
+    private async Task LoadExportSettingsAsync(string settingsPath)
+    {
+        if (!File.Exists(settingsPath))
+        {
+            throw new FileNotFoundException("设置文件不存在");
+        }
+
+        var settingsContent = await File.ReadAllTextAsync(settingsPath);
+        ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 已加载导出设置: {settingsPath}\n";
+    }
+
     private async Task SaveConversionLogAsync(string outputDir, string logContent)
     {
         try
@@ -632,16 +688,13 @@ public partial class MainViewModel : ObservableObject
             if (string.IsNullOrWhiteSpace(logContent) || string.IsNullOrWhiteSpace(outputDir))
                 return;
 
-            // 确保输出目录存在
             if (!Directory.Exists(outputDir))
                 Directory.CreateDirectory(outputDir);
 
-            // 生成日志文件名：SpineForge_时间.log
             string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             string logFileName = $"SpineForge_{timestamp}.log";
             string logFilePath = Path.Combine(outputDir, logFileName);
 
-            // 添加日志头部信息
             string logHeader = $"SpineForge 转换日志\n";
             logHeader += $"生成时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss}\n";
             logHeader += $"输出目录: {outputDir}\n";
@@ -649,10 +702,7 @@ public partial class MainViewModel : ObservableObject
 
             string fullLogContent = logHeader + logContent;
 
-            // 写入日志文件
             await File.WriteAllTextAsync(logFilePath, fullLogContent, Encoding.UTF8);
-
-            // 在日志中显示保存成功信息
             ConversionLog += $"\n✓ 转换日志已保存到: {logFileName}";
         }
         catch (Exception ex)
