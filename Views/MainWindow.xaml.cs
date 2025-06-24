@@ -639,7 +639,7 @@ public partial class MainWindow : FluentWindow
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        if (_viewModel?.AppSettings != null)
+        /*if (_viewModel?.AppSettings != null)
         {
             var settings = _viewModel.AppSettings;
             
@@ -654,7 +654,7 @@ public partial class MainWindow : FluentWindow
             }
             
             // Console.WriteLine($"Applied settings: W={Width}, H={Height}, L={Left}, T={Top}");
-        }
+        }*/
 
         SetupTextBoxDragHandling();
     }
