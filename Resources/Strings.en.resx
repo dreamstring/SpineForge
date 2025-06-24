@@ -1,0 +1,211 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  
+  <!-- UI Text -->
+  <data name="SelectSpineExecutable" xml:space="preserve">
+    <value>Select Spine Executable</value>
+  </data>
+  <data name="ConversionComplete" xml:space="preserve">
+    <value>Conversion Complete!</value>
+  </data>
+  <data name="WindowTitle" xml:space="preserve">
+    <value>Spine Version Converter</value>
+  </data>
+  
+  <!-- Log Messages -->
+  <data name="Log_StartConversion" xml:space="preserve">
+    <value>Starting conversion:</value>
+  </data>
+  <data name="Log_SpineExecutable" xml:space="preserve">
+    <value>Spine executable: {0}</value>
+  </data>
+  <data name="Log_SourceFile" xml:space="preserve">
+    <value>Source file: {0}</value>
+  </data>
+  <data name="Log_TargetVersion" xml:space="preserve">
+    <value>Target version: {0}</value>
+  </data>
+  <data name="Log_OutputDirectory" xml:space="preserve">
+    <value>Output directory: {0}</value>
+  </data>
+  <data name="Log_Output" xml:space="preserve">
+    <value>Output: {0}</value>
+  </data>
+  <data name="Log_ConversionSuccess" xml:space="preserve">
+    <value>Conversion completed successfully!</value>
+  </data>
+  <data name="Log_JsonPostProcessing" xml:space="preserve">
+    <value>Starting JSON post-processing...</value>
+  </data>
+  <data name="ConversionError" xml:space="preserve">
+    <value>Conversion error: {0}</value>
+  </data>
+
+  <!-- Status Messages -->
+  <data name="NotSelected" xml:space="preserve">
+    <value>Not Selected</value>
+  </data>
+  <data name="NotSet" xml:space="preserve">
+    <value>Not Set</value>
+  </data>
+  <data name="UseDefaultSettings" xml:space="preserve">
+    <value>Use Default Settings</value>
+  </data>
+  <data name="PleaseSelectSpineExecutable" xml:space="preserve">
+    <value>Please select Spine.com executable first</value>
+  </data>
+  <data name="PleaseSelectSpineFile" xml:space="preserve">
+    <value>Please select a Spine project file</value>
+  </data>
+  <data name="CheckingFiles" xml:space="preserve">
+    <value>Checking files...</value>
+  </data>
+  <data name="PleaseSelectTargetVersion" xml:space="preserve">
+    <value>Please select target version</value>
+  </data>
+  <data name="Converting" xml:space="preserve">
+    <value>Converting...</value>
+  </data>
+  <data name="ReadyToConvert" xml:space="preserve">
+    <value>Ready to convert</value>
+  </data>
+  <data name="LoadSettingsError" xml:space="preserve">
+    <value>Error loading settings: {0}</value>
+  </data>
+
+  <!-- UI Text -->
+  <data name="SpineExecutableSettings" xml:space="preserve">
+    <value>Spine Executable Settings</value>
+  </data>
+  <data name="ImportantNotice" xml:space="preserve">
+    <value>Important Notice</value>
+  </data>
+  <data name="SelectSpineExecutableHint" xml:space="preserve">
+    <value>Please select the executable file from your installed Spine software (Windows: Spine.com, Mac: Spine)</value>
+  </data>
+  <data name="SpineExecutableFile" xml:space="preserve">
+    <value>Spine Executable File:</value>
+  </data>
+  <data name="Browse" xml:space="preserve">
+    <value>Browse...</value>
+  </data>
+  <data name="SelectSpineFile" xml:space="preserve">
+    <value>Select Spine File</value>
+  </data>
+  <data name="Tip" xml:space="preserve">
+    <value>Tip</value>
+  </data>
+  <data name="SpineFileConversionHint" xml:space="preserve">
+    <value>Select .spine file for conversion. Only .spine and .bytes files support version conversion</value>
+  </data>
+  <data name="SpineFile" xml:space="preserve">
+    <value>.spine File:</value>
+  </data>
+  <data name="SelectSpineFilePlaceholder" xml:space="preserve">
+    <value>Please select .spine file...</value>
+  </data>
+  <data name="ConversionSettings" xml:space="preserve">
+    <value>Conversion Settings</value>
+  </data>
+  <data name="ExportSettings" xml:space="preserve">
+    <value>Export Settings:</value>
+  </data>
+  <data name="SelectSettingsFile" xml:space="preserve">
+    <value>Select Settings File</value>
+  </data>
+  <data name="OutputDirectory" xml:space="preserve">
+    <value>Output Directory:</value>
+  </data>
+  <data name="OutputDirectoryPlaceholder" xml:space="preserve">
+    <value>Leave empty to save next to original file</value>
+  </data>
+  <data name="SelectDirectory" xml:space="preserve">
+    <value>Select Directory</value>
+  </data>
+  <data name="PathReset" xml:space="preserve">
+    <value>Path Reset:</value>
+  </data>
+  <data name="ResetImagePaths" xml:space="preserve">
+    <value>Reset Image Index Paths</value>
+  </data>
+  <data name="ResetAudioPaths" xml:space="preserve">
+    <value>Reset Audio Index Paths</value>
+  </data>
+  <data name="MaxWidth" xml:space="preserve">
+    <value>Max Width:</value>
+  </data>
+  <data name="MaxHeight" xml:space="preserve">
+    <value>Max Height:</value>
+  </data>
+  <data name="SourceVersion" xml:space="preserve">
+    <value>Source Version:</value>
+  </data>
+  <data name="TargetVersion" xml:space="preserve">
+    <value>Target Version:</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="ConversionLog" xml:space="preserve">
+    <value>Conversion Log</value>
+  </data>
+
+</root>

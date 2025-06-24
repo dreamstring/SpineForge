@@ -1,0 +1,217 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  
+  <!-- UI 文本 -->
+  <data name="SelectSpineExecutable" xml:space="preserve">
+    <value>选择 Spine 可执行文件</value>
+  </data>
+  <data name="ConversionComplete" xml:space="preserve">
+    <value>转换完成!</value>
+  </data>
+  <data name="WindowTitle" xml:space="preserve">
+    <value>Spine 版本转换工具</value>
+  </data>
+  
+  <!-- 日志消息 -->
+  <data name="Log_StartConversion" xml:space="preserve">
+    <value>开始转换:</value>
+  </data>
+  <data name="Log_SpineExecutable" xml:space="preserve">
+    <value>Spine 可执行文件: {0}</value>
+  </data>
+  <data name="Log_SourceFile" xml:space="preserve">
+    <value>源文件: {0}</value>
+  </data>
+  <data name="Log_TargetVersion" xml:space="preserve">
+    <value>目标版本: {0}</value>
+  </data>
+  <data name="Log_OutputDirectory" xml:space="preserve">
+    <value>输出目录: {0}</value>
+  </data>
+  <data name="Log_Output" xml:space="preserve">
+    <value>输出: {0}</value>
+  </data>
+  <data name="Log_ConversionSuccess" xml:space="preserve">
+    <value>转换成功完成!</value>
+  </data>
+  <data name="Log_JsonPostProcessing" xml:space="preserve">
+    <value>开始 JSON 后处理...</value>
+  </data>
+  <data name="ConversionError" xml:space="preserve">
+    <value>转换错误: {0}</value>
+  </data>
+
+  <!-- 状态消息 -->
+  <data name="NotSelected" xml:space="preserve">
+    <value>未选择</value>
+  </data>
+  <data name="NotSet" xml:space="preserve">
+    <value>未设置</value>
+  </data>
+  <data name="UseDefaultSettings" xml:space="preserve">
+    <value>使用默认设置</value>
+  </data>
+  <data name="PleaseSelectSpineExecutable" xml:space="preserve">
+    <value>请先选择 Spine.com 可执行文件</value>
+  </data>
+  <data name="PleaseSelectSpineFile" xml:space="preserve">
+    <value>请选择 Spine 项目文件</value>
+  </data>
+  <data name="CheckingFiles" xml:space="preserve">
+    <value>正在检查文件...</value>
+  </data>
+  <data name="PleaseSelectTargetVersion" xml:space="preserve">
+    <value>请选择目标版本</value>
+  </data>
+  <data name="Converting" xml:space="preserve">
+    <value>正在转换中...</value>
+  </data>
+  <data name="ReadyToConvert" xml:space="preserve">
+    <value>准备就绪，可以开始转换</value>
+  </data>
+  <data name="LoadSettingsError" xml:space="preserve">
+    <value>加载设置时出错: {0}</value>
+  </data>
+
+  <!-- UI 文本 -->
+  <data name="SpineExecutableSettings" xml:space="preserve">
+    <value>Spine 可执行文件设置</value>
+  </data>
+  <data name="ImportantNotice" xml:space="preserve">
+    <value>重要提示</value>
+  </data>
+  <data name="SelectSpineExecutableHint" xml:space="preserve">
+    <value>请选择您安装的 Spine 软件中的可执行文件 (Windows: Spine.com, Mac: Spine)</value>
+  </data>
+  <data name="SpineExecutableFile" xml:space="preserve">
+    <value>Spine 可执行文件:</value>
+  </data>
+  <data name="Browse" xml:space="preserve">
+    <value>浏览...</value>
+  </data>
+  <data name="SelectSpineFile" xml:space="preserve">
+    <value>选择 Spine 文件</value>
+  </data>
+  <data name="Tip" xml:space="preserve">
+    <value>提示</value>
+  </data>
+  <data name="SpineFileConversionHint" xml:space="preserve">
+    <value>选择 .spine 文件进行转换，只有 .spine 和 .bytes 支持转版本</value>
+  </data>
+  <data name="SpineFile" xml:space="preserve">
+    <value>.spine 文件:</value>
+  </data>
+  <data name="SelectSpineFilePlaceholder" xml:space="preserve">
+    <value>请选择 .spine 文件...</value>
+  </data>
+  <data name="ConversionSettings" xml:space="preserve">
+    <value>转换设置</value>
+  </data>
+  <data name="ExportSettings" xml:space="preserve">
+    <value>导出设置:</value>
+  </data>
+  <data name="SelectSettingsFile" xml:space="preserve">
+    <value>选择设置文件</value>
+  </data>
+  <data name="OutputDirectory" xml:space="preserve">
+    <value>输出目录:</value>
+  </data>
+  <data name="OutputDirectoryPlaceholder" xml:space="preserve">
+    <value>留空则保存在原文件旁边</value>
+  </data>
+  <data name="SelectDirectory" xml:space="preserve">
+    <value>选择目录</value>
+  </data>
+  <data name="PathReset" xml:space="preserve">
+    <value>路径重置：</value>
+  </data>
+  <data name="ResetImagePaths" xml:space="preserve">
+    <value>重置图片索引路径</value>
+  </data>
+  <data name="ResetAudioPaths" xml:space="preserve">
+    <value>重置音频索引路径</value>
+  </data>
+  <data name="MaxWidth" xml:space="preserve">
+    <value>最大宽度:</value>
+  </data>
+  <data name="MaxHeight" xml:space="preserve">
+    <value>最大高度:</value>
+  </data>
+  <data name="SourceVersion" xml:space="preserve">
+    <value>源版本:</value>
+  </data>
+  <data name="TargetVersion" xml:space="preserve">
+    <value>目标版本:</value>
+  </data>
+  <data name="StartConversion" xml:space="preserve">
+    <value>开始转换</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>状态</value>
+  </data>
+  <data name="Converting" xml:space="preserve">
+    <value>转换中...</value>
+  </data>
+  <data name="ConversionLog" xml:space="preserve">
+    <value>转换日志</value>
+  </data>
+
+</root>
