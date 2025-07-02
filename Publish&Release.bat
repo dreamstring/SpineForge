@@ -53,12 +53,12 @@ if !errorlevel! equ 0 (
     REM Copy published files
     xcopy "publish-!timestamp!\*" "!package_dir!\" /E /I /Y
     
-    REM Copy TestSpine folder
-    if exist "TestSpine" (
-        echo Copying TestSpine folder...
-        xcopy "TestSpine" "!package_dir!\TestSpine\" /E /I /Y
+    REM Copy Examples folder
+    if exist "Examples" (
+        echo Copying Examples folder...
+        xcopy "Examples" "!package_dir!\Examples\" /E /I /Y
     ) else (
-        echo Warning: TestSpine folder not found, skipping copy
+        echo Warning: Examples folder not found, skipping copy
     )
     
     REM Create zip file using PowerShell
