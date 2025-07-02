@@ -1,0 +1,14 @@
+raggedyspineboy.png
+size:326,140
+filter:Linear,Linear
+arm
+bounds:191,3,71,75
+rotate:90
+head
+bounds:2,2,136,187
+rotate:90
+leg
+bounds:288,39,36,99
+torso
+bounds:191,76,62,95
+rotate:90
