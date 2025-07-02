@@ -81,6 +81,20 @@ namespace SpineForge.Services
                     }
 
                     progress?.Report($"正在处理: {Path.GetFileName(spineFile)} ({successCount + 1}/{totalCount})");
+                    
+                    progress?.Report($"DEBUG: 即将调用 ExportSpineFileAsync，spineExePath = '{validSpineExePath}'");
+
+                    if (string.IsNullOrEmpty(validSpineExePath))
+                    {
+                        progress?.Report("错误: validSpineExePath 为空，无法继续执行");
+                        return false;
+                    }
+
+                    if (!File.Exists(validSpineExePath))
+                    {
+                        progress?.Report($"错误: 验证的 Spine 路径不存在: {validSpineExePath}");
+                        return false;
+                    }
 
                     // 6. 调用转换方法，确保传递正确的路径
                     var success = await ExportSpineFileAsync(validSpineExePath, spineFile, settings, progress);
@@ -237,7 +251,8 @@ namespace SpineForge.Services
 
             try
             {
-                // 立即验证参数
+                
+                // 详细验证和调试信息
                 progress?.Report($"DEBUG: ExportSpineFileAsync 接收到的 spineExePath = '{spineExePath ?? "NULL"}'");
 
                 if (string.IsNullOrEmpty(spineExePath))
@@ -259,6 +274,12 @@ namespace SpineForge.Services
                     progress?.Report($"错误: Spine 项目文件不存在: {spineFile}");
                     return false;
                 }
+                
+                // 显示最终使用的路径信息
+                progress?.Report($"使用 Spine 路径: {spineExePath}");
+                progress?.Report($"Spine 工作目录: {Path.GetDirectoryName(spineExePath)}");
+                progress?.Report($"输入文件: {spineFile}");
+                progress?.Report($"输出目录: {settings.OutputDirectory}");
 
                 var outputDir = settings.OutputDirectory;
                 var baseFileName = Path.GetFileNameWithoutExtension(spineFile);
@@ -372,7 +393,8 @@ namespace SpineForge.Services
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
-                    WorkingDirectory = Path.GetDirectoryName(actualInputFile), // 使用处理后的输入文件目录
+                    
+                    WorkingDirectory = Path.GetDirectoryName(spineExePath), // 使用处理后的输入文件目录
 
                     // 关键：设置编码为 UTF-8
                     StandardOutputEncoding = Encoding.UTF8,
@@ -380,10 +402,19 @@ namespace SpineForge.Services
                 };
 
                 // 设置环境变量强制使用 UTF-8
-                processInfo.EnvironmentVariables["PYTHONIOENCODING"] = "utf-8";
-                processInfo.EnvironmentVariables["LC_ALL"] = "en_US.UTF-8";
-                processInfo.EnvironmentVariables["LANG"] = "en_US.UTF-8";
-                processInfo.EnvironmentVariables["CHCP"] = "65001"; // Windows UTF-8 代码页
+                if (Path.GetExtension(spineExePath).ToLower() == ".com")
+                {
+                    // 对于 .com 文件，尽量保持原始环境
+                    processInfo.EnvironmentVariables["CHCP"] = "65001"; // 只设置UTF-8代码页
+                }
+                else
+                {
+                    // 对于 .exe 文件，保持原有设置
+                    processInfo.EnvironmentVariables["PYTHONIOENCODING"] = "utf-8";
+                    processInfo.EnvironmentVariables["LC_ALL"] = "en_US.UTF-8";
+                    processInfo.EnvironmentVariables["LANG"] = "en_US.UTF-8";
+                    processInfo.EnvironmentVariables["CHCP"] = "65001";
+                }
 
                 // 修改日志显示，确保显示完整命令
                 progress?.Report($"执行命令: \"{processInfo.FileName}\" {processInfo.Arguments}");
@@ -755,7 +786,7 @@ namespace SpineForge.Services
                     return false;
 
                 // 获取有效的 Spine 可执行文件路径
-                var spineExePath = GetValidSpineExecutablePath(settings.SpineExecutablePath, progress);
+                var spineExePath = GetValidSpineExecutablePath(asset.SpineExecutablePath, progress);
                 if (string.IsNullOrEmpty(spineExePath))
                 {
                     progress?.Report("错误: 找不到有效的 Spine 可执行文件");

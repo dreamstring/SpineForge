@@ -2,7 +2,7 @@
 "class": "export-json",
 "extension": ".json",
 "format": "JSON",
-"prettyPrint": false,
+"prettyPrint": true,
 "nonessential": true,
 "cleanUp": true,
 "packAtlas": {
@@ -44,7 +44,7 @@
 	"limitMemory": true,
 	"currentProject": true,
 	"packing": "rectangles",
-	"prettyPrint": false,
+	"prettyPrint": true,
 	"legacyOutput": false,
 	"webp": null,
 	"bleedIterations": 2,

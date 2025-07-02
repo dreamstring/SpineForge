@@ -12,9 +12,9 @@
     <ApplicationIcon>icon.ico</ApplicationIcon>
     
     <!-- 添加版本信息 -->
-    <Version>1.0.2</Version>
-    <AssemblyVersion>1.0.2</AssemblyVersion>
-    <FileVersion>1.0.2</FileVersion>
+    <Version>1.0.3</Version>
+    <AssemblyVersion>1.0.3</AssemblyVersion>
+    <FileVersion>1.0.3</FileVersion>
   </PropertyGroup>
 
   <!-- 发布配置 -->

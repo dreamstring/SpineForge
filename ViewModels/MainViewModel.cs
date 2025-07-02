@@ -440,7 +440,6 @@ public partial class MainViewModel : ObservableObject
         UpdateStatusMessage();
     }
 
-    // 其他命令方法保持不变...
     [RelayCommand]
     private async Task StartConversionAsync()
     {
