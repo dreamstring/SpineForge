@@ -1,6 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System;
+using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 
 namespace SpineForge.Models
 {
@@ -33,9 +35,18 @@ namespace SpineForge.Models
         [ObservableProperty]
         private string? _spineFilePath = string.Empty;
 
+        // 新增：支持多文件选择
+        [ObservableProperty]
+        private ObservableCollection<string> _spineFilePaths = new();
+
         // 计算属性
         public bool IsSpineExecutableExists => !string.IsNullOrEmpty(SpineExecutablePath) && File.Exists(SpineExecutablePath);
-        public bool IsSpineFileExists => !string.IsNullOrEmpty(SpineFilePath) && File.Exists(SpineFilePath);
+        
+        // 修改：支持多文件验证
+        public bool IsSpineFileExists => 
+            (!string.IsNullOrEmpty(SpineFilePath) && File.Exists(SpineFilePath)) ||
+            (SpineFilePaths?.Any(path => !string.IsNullOrEmpty(path) && File.Exists(path)) == true);
+        
         public bool IsReady => IsSpineExecutableExists && IsSpineFileExists;
 
         public string FormattedSize
@@ -66,14 +77,63 @@ namespace SpineForge.Models
             
             if (!string.IsNullOrEmpty(value) && File.Exists(value))
             {
-                FilePath = value;
-                Name = Path.GetFileNameWithoutExtension(value);
-                Directory = Path.GetDirectoryName(value) ?? string.Empty;
+                UpdateFileInfo(value);
+            }
+        }
+
+        // 新增：当 SpineFilePaths 改变时的处理
+        partial void OnSpineFilePathsChanged(ObservableCollection<string> value)
+        {
+            OnPropertyChanged(nameof(IsReady));
+            OnPropertyChanged(nameof(IsSpineFileExists));
+            
+            // 如果有多个文件，更新主文件路径为第一个文件
+            if (value?.Any() == true)
+            {
+                var firstValidFile = value.FirstOrDefault(path => !string.IsNullOrEmpty(path) && File.Exists(path));
+                if (!string.IsNullOrEmpty(firstValidFile))
+                {
+                    // 避免循环调用
+                    if (_spineFilePath != firstValidFile)
+                    {
+                        _spineFilePath = firstValidFile;
+                        OnPropertyChanged(nameof(SpineFilePath));
+                        UpdateFileInfo(firstValidFile);
+                    }
+                }
+            }
+        }
+
+        // 提取文件信息更新逻辑
+        private void UpdateFileInfo(string filePath)
+        {
+            try
+            {
+                FilePath = filePath;
+                Name = Path.GetFileNameWithoutExtension(filePath);
+                Directory = Path.GetDirectoryName(filePath) ?? string.Empty;
                 
-                var fileInfo = new FileInfo(value);
+                var fileInfo = new FileInfo(filePath);
                 Size = fileInfo.Length;
                 LastModified = fileInfo.LastWriteTime;
             }
+            catch
+            {
+                // 静默处理文件信息获取错误
+            }
+        }
+
+        // 构造函数中初始化集合
+        public SpineAsset()
+        {
+            SpineFilePaths = new ObservableCollection<string>();
+            
+            // 监听集合变化
+            SpineFilePaths.CollectionChanged += (sender, e) =>
+            {
+                OnPropertyChanged(nameof(IsReady));
+                OnPropertyChanged(nameof(IsSpineFileExists));
+            };
         }
     }
 }

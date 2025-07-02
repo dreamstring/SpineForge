@@ -17,7 +17,7 @@
                  LocationChanged="MainWindow_LocationChanged"
                  SizeChanged="MainWindow_SizeChanged"
                  StateChanged="MainWindow_StateChanged">
-    
+
     <ui:FluentWindow.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter" />
@@ -108,39 +108,124 @@
                                     IsClosable="False"
                                     Margin="0,0,0,10" />
 
-                        <!-- .spine 文件选择行 -->
-                        <Grid>
+                        <Grid Margin="0,8,0,0">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="80" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
 
-                            <ui:TextBlock Grid.Column="0"
+                            <ui:TextBlock Grid.Column="0" Grid.Row="0"
                                           Text=".spine 文件:"
                                           VerticalAlignment="Center"
                                           FontWeight="Medium"
                                           FontSize="12" />
 
-                            <ui:TextBox Grid.Column="1"
-                                        Text="{Binding CurrentAsset.SpineFilePath}"
+                            <ui:TextBox Grid.Column="1" Grid.Row="0"
+                                        Text="{Binding SpineFilePathDisplay, Mode=OneWay}"
                                         IsReadOnly="True"
-                                        PlaceholderText="请选择 .spine 文件..."
-                                        Margin="0,0,6,0" />
+                                        PlaceholderText="请选择 .spine 文件或拖放文件到此处..."
+                                        Margin="0,0,6,0"
+                                        AllowDrop="True" />
 
-                            <ui:SymbolIcon Grid.Column="2"
+                            <ui:SymbolIcon Grid.Column="2" Grid.Row="0"
                                            Symbol="CheckmarkCircle24"
                                            Foreground="Green"
-                                           Visibility="{Binding CurrentAsset.IsSpineFileExists, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                           Visibility="{Binding HasSpineFiles, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                           VerticalAlignment="Center"
                                            Margin="0,0,6,0" />
 
-                            <ui:Button Grid.Column="3"
+                            <ui:Button Grid.Column="3" Grid.Row="0"
                                        Content="浏览..."
                                        Command="{Binding SelectSpineFileCommand}"
                                        FontSize="12"
-                                       Padding="10,5" />
+                                       Padding="10,5"
+                                       VerticalAlignment="Center" />
+
+                            <ui:Button Grid.Column="4" Grid.Row="0"
+                                       Content="清空"
+                                       Command="{Binding ClearSpineFilesCommand}"
+                                       FontSize="12"
+                                       Padding="10,5"
+                                       VerticalAlignment="Center"
+                                       Margin="6,0,0,0"
+                                       Visibility="{Binding HasSpineFiles, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                            <!-- 文件列表显示区域 -->
+                            <Border Grid.Column="1" Grid.Row="1"
+                                    Grid.ColumnSpan="4"
+                                    Margin="0,6,0,0"
+                                    Visibility="{Binding HasMultipleSpineFiles, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                    Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                    BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="8">
+
+                                <ScrollViewer MaxHeight="120"
+                                              VerticalScrollBarVisibility="Auto"
+                                              HorizontalScrollBarVisibility="Disabled">
+                                    <ItemsControl ItemsSource="{Binding CurrentAsset.SpineFilePaths}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Margin="0,2"
+                                                        Padding="6,4"
+                                                        Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                                        CornerRadius="3">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <!-- 文件图标 -->
+                                                        <ui:SymbolIcon Grid.Column="0"
+                                                                       Symbol="Document24"
+                                                                       FontSize="14"
+                                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                                       VerticalAlignment="Center"
+                                                                       Margin="0,0,6,0" />
+
+                                                        <!-- 文件路径 -->
+                                                        <ui:TextBlock Grid.Column="1"
+                                                                      Text="{Binding}"
+                                                                      FontSize="11"
+                                                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                                      VerticalAlignment="Center"
+                                                                      TextTrimming="CharacterEllipsis"
+                                                                      ToolTip="{Binding}" />
+
+                                                        <!-- 删除按钮 -->
+                                                        <ui:Button Grid.Column="2"
+                                                                   Width="20" Height="20"
+                                                                   Padding="0"
+                                                                   Margin="6,0,0,0"
+                                                                   VerticalAlignment="Center"
+                                                                   Background="Transparent"
+                                                                   BorderThickness="0"
+                                                                   Command="{Binding DataContext.RemoveSpineFileCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                   CommandParameter="{Binding}"
+                                                                   ToolTip="删除此文件">
+                                                            <ui:SymbolIcon Symbol="Delete24"
+                                                                           FontSize="12"
+                                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                        </ui:Button>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Border>
                         </Grid>
+
                     </StackPanel>
                 </ui:Card>
 

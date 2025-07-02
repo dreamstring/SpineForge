@@ -82,6 +82,23 @@ public partial class MainWindow : FluentWindow
             var files = (string[])e.Data.GetData(DataFormats.FileDrop);
             if (files != null && files.Length > 0)
             {
+                // 检查是否是.spine文件的拖放到spine文件输入框
+                var bindingExpression = textBox.GetBindingExpression(Wpf.Ui.Controls.TextBox.TextProperty);
+                var bindingPath = bindingExpression?.ParentBinding?.Path?.Path;
+
+                if (bindingPath == "SpineFilePathDisplay") // 这是多文件显示的TextBox
+                {
+                    var spineFiles = files.Where(f => Path.GetExtension(f).ToLower() == ".spine").ToArray();
+                    if (spineFiles.Length > 0)
+                    {
+                        e.Effects = DragDropEffects.Copy;
+                        SetTextBoxHoverStyle(textBox);
+                        ShowSpineFilesDragHint(textBox, spineFiles);
+                        return;
+                    }
+                }
+
+                // 原有的单文件逻辑
                 var extension = Path.GetExtension(files[0]).ToLower();
                 _currentDragExtension = extension;
 
@@ -99,7 +116,7 @@ public partial class MainWindow : FluentWindow
             }
         }
 
-        e.Handled = true; // 阻止事件继续传播
+        e.Handled = true;
     }
 
     private void TextBox_PreviewDragOver(object sender, DragEventArgs e)
@@ -172,18 +189,40 @@ public partial class MainWindow : FluentWindow
             var files = (string[])e.Data.GetData(DataFormats.FileDrop);
             if (files != null && files.Length > 0)
             {
-                var file = files[0];
-                var extension = Path.GetExtension(file).ToLower();
+                var bindingExpression = textBox.GetBindingExpression(Wpf.Ui.Controls.TextBox.TextProperty);
+                var bindingPath = bindingExpression?.ParentBinding?.Path?.Path;
 
-                if (IsValidDropTarget(textBox, extension))
+                // 检查是否是拖放到spine文件显示框
+                if (bindingPath == "SpineFilePathDisplay")
                 {
-                    HandleFileDrop(file, extension, textBox);
-                    e.Effects = DragDropEffects.Copy;
+                    var spineFiles = files.Where(f => Path.GetExtension(f).ToLower() == ".spine").ToArray();
+                    if (spineFiles.Length > 0)
+                    {
+                        HandleSpineFilesDrop(spineFiles);
+                        e.Effects = DragDropEffects.Copy;
+                    }
+                    else
+                    {
+                        e.Effects = DragDropEffects.None;
+                        ShowErrorMessage("请拖放 .spine 文件");
+                    }
                 }
                 else
                 {
-                    e.Effects = DragDropEffects.None;
-                    ShowErrorMessage($"无法将 {extension} 文件拖拽到此位置");
+                    // 原有的单文件处理逻辑
+                    var file = files[0];
+                    var extension = Path.GetExtension(file).ToLower();
+
+                    if (IsValidDropTarget(textBox, extension))
+                    {
+                        HandleFileDrop(file, extension, textBox);
+                        e.Effects = DragDropEffects.Copy;
+                    }
+                    else
+                    {
+                        e.Effects = DragDropEffects.None;
+                        ShowErrorMessage($"无法将 {extension} 文件拖拽到此位置");
+                    }
                 }
             }
         }
@@ -192,7 +231,7 @@ public partial class MainWindow : FluentWindow
         HideAllDragHints();
         _currentDragExtension = "";
 
-        e.Handled = true; // 阻止事件继续传播
+        e.Handled = true;
     }
 
     private void MainWindow_DragEnter(object sender, DragEventArgs e)
@@ -282,6 +321,26 @@ public partial class MainWindow : FluentWindow
         _currentDragExtension = "";
     }
 
+    private void HandleSpineFilesDrop(string[] spineFiles)
+    {
+        _viewModel?.AddSpineFiles(spineFiles);
+    }
+
+
+// 新增：显示spine文件拖放提示
+    private void ShowSpineFilesDragHint(Wpf.Ui.Controls.TextBox textBox, string[] spineFiles)
+    {
+        if (_viewModel != null)
+        {
+            var fileNames = spineFiles.Select(Path.GetFileName);
+            var hint = spineFiles.Length == 1
+                ? $"松开设置 Spine 文件: {fileNames.First()}"
+                : $"松开添加 {spineFiles.Length} 个 Spine 文件: {string.Join(", ", fileNames.Take(3))}{(spineFiles.Length > 3 ? "..." : "")}";
+
+            _viewModel.StatusMessage = hint;
+        }
+    }
+
     private bool IsValidDropTarget(Wpf.Ui.Controls.TextBox textBox, string extension)
     {
         var bindingExpression = textBox.GetBindingExpression(Wpf.Ui.Controls.TextBox.TextProperty);
@@ -293,6 +352,7 @@ public partial class MainWindow : FluentWindow
         {
             "CurrentAsset.SpineExecutablePath" => extension == ".exe" || extension == ".com",
             "CurrentAsset.SpineFilePath" => extension == ".spine",
+            "SpineFilePathDisplay" => extension == ".spine", // 新增：支持多文件显示框
             "ConversionSettings.ExportSettingsPath" => extension == ".json",
             "ConversionSettings.OutputDirectory" => true,
             _ => false
@@ -584,7 +644,13 @@ public partial class MainWindow : FluentWindow
     // 这些方法需要根据你的实际实现来添加
     private void TriggerPropertyChanged(string propertyName)
     {
-        // 触发属性更改通知的实现
+        if (_viewModel != null)
+        {
+            // 使用反射或直接调用ViewModel的OnPropertyChanged方法
+            var method = _viewModel.GetType().GetMethod("OnPropertyChanged", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            method?.Invoke(_viewModel, new object[] { propertyName });
+        }
     }
 
     private void ShowSuccessMessage(string message)
@@ -642,17 +708,17 @@ public partial class MainWindow : FluentWindow
         /*if (_viewModel?.AppSettings != null)
         {
             var settings = _viewModel.AppSettings;
-            
+
             Width = settings.WindowWidth;
             Height = settings.WindowHeight;
             Left = settings.WindowLeft;
             Top = settings.WindowTop;
-            
+
             if (settings.WindowMaximized)
             {
                 WindowState = WindowState.Maximized;
             }
-            
+
             // Console.WriteLine($"Applied settings: W={Width}, H={Height}, L={Left}, T={Top}");
         }*/
 
