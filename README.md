@@ -1,6 +1,6 @@
 # SpineForge
 
-[English](#english) | [中文](#中文)
+[中文](#中文) | [English](#english)
 
 ---
 
@@ -50,16 +50,15 @@ SpineForge 是一个专业的 Spine 动画资产批量处理工具，专为游�
 
 ### 项目结构
 
-SpineForge/
-├── Config/              # 配置文件
-├── Converters/          # 数据转换器
-├── Models/              # 数据模型
-├── Services/            # 业务服务
-├── ViewModels/          # 视图模型
-├── Views/               # 用户界面
-├── Resources/           # 资源文件
-├── Examples/            # 测试示例文件（来自 Spine Runtime）
-└── Utils/               # 工具类
+- **Config/** - 配置文件
+- **Converters/** - 数据转换器
+- **Models/** - 数据模型
+- **Services/** - 业务服务
+- **ViewModels/** - 视图模型
+- **Views/** - 用户界面
+- **Resources/** - 资源文件
+- **Examples/** - 测试示例文件（来自 Spine Runtime）
+- **Utils/** - 工具类
 
 ### 技术栈
 
@@ -126,16 +125,15 @@ SpineForge is a professional batch processing tool for Spine animation assets, d
 
 ### Project Structure
 
-SpineForge/
-├── Config/              # Configuration files
-├── Converters/          # Data converters
-├── Models/              # Data models
-├── Services/            # Business services
-├── ViewModels/          # View models
-├── Views/               # User interfaces
-├── Resources/           # Resource files
-├── Examples/            # Test example files (from Spine Runtime)
-└── Utils/               # Utility classes
+- **Config/** - Configuration files
+- **Converters/** - Data converters
+- **Models/** - Data models
+- **Services/** - Business services
+- **ViewModels/** - View models
+- **Views/** - User interfaces
+- **Resources/** - Resource files
+- **Examples/** - Test example files (from Spine Runtime)
+- **Utils/** - Utility classes
 
 ### Tech Stack
 
