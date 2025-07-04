@@ -1,0 +1,89 @@
+﻿<UserControl x:Class="SpineForge.Controls.CollapsibleCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+
+    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="8"
+            Margin="4">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0"
+                    Background="Transparent"
+                    Padding="16,12"
+                    Cursor="Hand"
+                    MouseLeftButtonDown="HeaderBorder_MouseLeftButtonDown">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding Title, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               VerticalAlignment="Center"/>
+
+                    <ui:Button Grid.Column="1"
+                               x:Name="PART_ToggleIcon"
+                               Width="24"
+                               Height="24"
+                               Background="Transparent"
+                               BorderThickness="0"
+                               Padding="0"
+                               Click="ToggleButton_Click"
+                               VerticalAlignment="Center">
+                        <ui:SymbolIcon Symbol="ChevronDown24"
+                                       FontSize="16"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                            <ui:SymbolIcon.RenderTransform>
+                                <RotateTransform x:Name="IconRotateTransform" CenterX="8" CenterY="8"/>
+                            </ui:SymbolIcon.RenderTransform>
+                        </ui:SymbolIcon>
+                    </ui:Button>
+                </Grid>
+            </Border>
+
+            <!-- Content -->
+            <ContentPresenter Grid.Row="1"
+                              x:Name="PART_ContentPresenter"
+                              Content="{Binding CardContent, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                              Margin="16,0,16,16"
+                              ClipToBounds="True"/>
+        </Grid>
+    </Border>
+
+    <!-- Visual State Manager for Icon Rotation -->
+    <UserControl.Resources>
+        <Storyboard x:Key="ExpandIconStoryboard">
+            <DoubleAnimation Storyboard.TargetName="IconRotateTransform"
+                             Storyboard.TargetProperty="Angle"
+                             To="180"
+                             Duration="0:0:0.3">
+                <DoubleAnimation.EasingFunction>
+                    <QuadraticEase EasingMode="EaseInOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
+        
+        <Storyboard x:Key="CollapseIconStoryboard">
+            <DoubleAnimation Storyboard.TargetName="IconRotateTransform"
+                             Storyboard.TargetProperty="Angle"
+                             To="0"
+                             Duration="0:0:0.3">
+                <DoubleAnimation.EasingFunction>
+                    <QuadraticEase EasingMode="EaseInOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
+    </UserControl.Resources>
+</UserControl>
