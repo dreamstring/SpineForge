@@ -291,7 +291,7 @@ namespace SpineForge.Controls
                 _contentPresenter.Height = double.NaN;
                 
                 _isAnimating = false;
-                Console.WriteLine("展开完成，已恢复Auto状态");
+                // Console.WriteLine("展开完成，已恢复Auto状态");
             };
             
             _isAnimating = true;

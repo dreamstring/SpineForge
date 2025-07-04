@@ -9,7 +9,7 @@
                  xmlns:controls="clr-namespace:SpineForge.Controls"
                  Title="{Binding WindowTitle}"
                  Icon="/icon.ico"
-                 Width="800" Height="1050"
+                 Width="800" Height="1100"
                  MinWidth="500" MinHeight="500"
                  WindowStartupLocation="CenterScreen"
                  ExtendsContentIntoTitleBar="True"
