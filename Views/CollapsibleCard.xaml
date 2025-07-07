@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="SpineForge.Controls.CollapsibleCard"
+﻿<UserControl x:Class="SpineForge.Views.CollapsibleCard"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
@@ -34,7 +34,7 @@
                                VerticalAlignment="Center"/>
 
                     <ui:Button Grid.Column="1"
-                               x:Name="PART_ToggleIcon"
+                               x:Name="PartToggleIcon"
                                Width="24"
                                Height="24"
                                Background="Transparent"
@@ -55,7 +55,7 @@
 
             <!-- Content -->
             <ContentPresenter Grid.Row="1"
-                              x:Name="PART_ContentPresenter"
+                              x:Name="PartContentPresenter"
                               Content="{Binding CardContent, RelativeSource={RelativeSource AncestorType=UserControl}}"
                               Margin="16,0,16,16"
                               ClipToBounds="True"/>

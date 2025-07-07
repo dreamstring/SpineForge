@@ -7,6 +7,11 @@ using System.ComponentModel;
 using System.IO;
 using System.Reflection;
 using System.Text;
+// ReSharper disable UnusedMember.Local
+// ReSharper disable LocalizableElement
+
+// ReSharper disable RedundantDefaultMemberInitializer
+// ReSharper disable UnusedVariable
 
 namespace SpineForge.ViewModels;
 
@@ -38,10 +43,10 @@ public partial class MainViewModel : ObservableObject
         {
             if (CurrentAsset?.SpineFilePaths == null || !CurrentAsset.SpineFilePaths.Any())
                 return "未选择";
-        
+
             if (CurrentAsset.SpineFilePaths.Count == 1)
                 return CurrentAsset.SpineFilePaths.First();
-        
+
             return $"已选择 {CurrentAsset.SpineFilePaths.Count} 个文件";
         }
     }
@@ -54,9 +59,9 @@ public partial class MainViewModel : ObservableObject
 
     // 验证属性
     public bool HasMultipleSpineFiles => CurrentAsset?.SpineFilePaths?.Count > 1;
-    
+
     public bool HasSpineFiles => CurrentAsset?.SpineFilePaths?.Any() == true;
-    
+
     public bool CanConvert => CurrentAsset?.IsReady == true &&
                               HasSpineFiles &&
                               SelectedTargetVersion != null &&
@@ -110,7 +115,7 @@ public partial class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(SpineExecutablePathDisplay));
             OnPropertyChanged(nameof(CanConvert));
         }
-        else if (e.PropertyName == nameof(CurrentAsset.SpineFilePath) || 
+        else if (e.PropertyName == nameof(CurrentAsset.SpineFilePath) ||
                  e.PropertyName == nameof(CurrentAsset.SpineFilePaths))
         {
             OnPropertyChanged(nameof(SpineFilePathDisplay));
@@ -371,11 +376,11 @@ public partial class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(HasSpineFiles));
             OnPropertyChanged(nameof(HasMultipleSpineFiles)); // 新增
             OnPropertyChanged(nameof(CanConvert));
-        
+
             UpdateStatusMessage();
         }
     }
-    
+
     // 添加清空文件的命令
     [RelayCommand]
     private void ClearSpineFiles()
@@ -384,13 +389,13 @@ public partial class MainViewModel : ObservableObject
         {
             CurrentAsset.SpineFilePaths.Clear();
             CurrentAsset.SpineFilePath = string.Empty;
-        
+
             // 通知UI更新
             OnPropertyChanged(nameof(SpineFilePathDisplay));
             OnPropertyChanged(nameof(HasSpineFiles));
             OnPropertyChanged(nameof(HasMultipleSpineFiles)); // 新增
             OnPropertyChanged(nameof(CanConvert));
-        
+
             UpdateStatusMessage();
         }
     }
@@ -459,7 +464,7 @@ public partial class MainViewModel : ObservableObject
     {
         ConversionSettings.OutputDirectory = string.Empty;
     }
-    
+
     public void AddSpineFiles(string[] spineFiles)
     {
         if (CurrentAsset.SpineFilePaths == null)
@@ -467,13 +472,11 @@ public partial class MainViewModel : ObservableObject
             CurrentAsset.SpineFilePaths = new ObservableCollection<string>();
         }
 
-        int addedCount = 0;
         foreach (var file in spineFiles)
         {
             if (!CurrentAsset.SpineFilePaths.Contains(file))
             {
                 CurrentAsset.SpineFilePaths.Add(file);
-                addedCount++;
             }
         }
 
@@ -488,29 +491,29 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(HasSpineFiles));
         OnPropertyChanged(nameof(HasMultipleSpineFiles));
         OnPropertyChanged(nameof(CanConvert));
-    
+
         UpdateStatusMessage();
     }
-    
+
     [RelayCommand]
     private void RemoveSpineFile(string filePath)
     {
         if (CurrentAsset?.SpineFilePaths != null && CurrentAsset.SpineFilePaths.Contains(filePath))
         {
             CurrentAsset.SpineFilePaths.Remove(filePath);
-        
+
             // 如果删除的是主文件，更新主文件路径
             if (CurrentAsset.SpineFilePath == filePath)
             {
                 CurrentAsset.SpineFilePath = CurrentAsset.SpineFilePaths.FirstOrDefault() ?? string.Empty;
             }
-        
+
             // 通知UI更新
             OnPropertyChanged(nameof(SpineFilePathDisplay));
             OnPropertyChanged(nameof(HasSpineFiles));
             OnPropertyChanged(nameof(HasMultipleSpineFiles));
             OnPropertyChanged(nameof(CanConvert));
-        
+
             UpdateStatusMessage();
         }
     }
@@ -553,221 +556,287 @@ public partial class MainViewModel : ObservableObject
         UpdateStatusMessage();
     }
 
-[RelayCommand]
-private async Task StartConversionAsync()
-{
-    // 验证必要的输入
-    if (!CurrentAsset.IsReady)
+    [RelayCommand]
+    private async Task StartConversionAsync()
     {
-        StatusMessage = "请确保已选择 Spine 可执行文件和项目文件";
-        return;
-    }
-
-    if (SelectedTargetVersion == null)
-    {
-        StatusMessage = "请选择目标版本";
-        return;
-    }
-
-    // 验证文件
-    if (!HasSpineFiles)
-    {
-        StatusMessage = "请选择至少一个 Spine 项目文件";
-        return;
-    }
-
-    // 验证所有文件是否存在
-    var invalidFiles = CurrentAsset.SpineFilePaths.Where(path => string.IsNullOrEmpty(path) || !File.Exists(path)).ToList();
-    if (invalidFiles.Any())
-    {
-        StatusMessage = $"以下文件不存在：{string.Join(", ", invalidFiles.Select(Path.GetFileName))}";
-        return;
-    }
-
-    // 设置输出目录
-    if (string.IsNullOrWhiteSpace(ConversionSettings.OutputDirectory))
-    {
-        try
+        // 验证必要的输入
+        if (!CurrentAsset.IsReady)
         {
-            var sourceDirectory = Path.GetDirectoryName(CurrentAsset.SpineFilePath);
-            if (string.IsNullOrWhiteSpace(sourceDirectory))
+            StatusMessage = "请确保已选择 Spine 可执行文件和项目文件";
+            return;
+        }
+
+        if (SelectedTargetVersion == null)
+        {
+            StatusMessage = "请选择目标版本";
+            return;
+        }
+
+        // 验证文件
+        if (!HasSpineFiles)
+        {
+            StatusMessage = "请选择至少一个 Spine 项目文件";
+            return;
+        }
+
+        // 验证所有文件是否存在
+        var invalidFiles = CurrentAsset.SpineFilePaths.Where(path => string.IsNullOrEmpty(path) || !File.Exists(path))
+            .ToList();
+        if (invalidFiles.Any())
+        {
+            StatusMessage = $"以下文件不存在：{string.Join(", ", invalidFiles.Select(Path.GetFileName))}";
+            return;
+        }
+
+        // 设置输出目录
+        if (string.IsNullOrWhiteSpace(ConversionSettings.OutputDirectory))
+        {
+            try
             {
-                StatusMessage = "无法确定输出目录";
+                var sourceDirectory = Path.GetDirectoryName(CurrentAsset.SpineFilePath);
+                if (string.IsNullOrWhiteSpace(sourceDirectory))
+                {
+                    StatusMessage = "无法确定输出目录";
+                    return;
+                }
+
+                ConversionSettings.OutputDirectory = sourceDirectory;
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"设置输出目录时出错: {ex.Message}";
                 return;
             }
-            ConversionSettings.OutputDirectory = sourceDirectory;
+        }
+
+        // 确保输出目录存在
+        try
+        {
+            if (!Directory.Exists(ConversionSettings.OutputDirectory))
+            {
+                Directory.CreateDirectory(ConversionSettings.OutputDirectory);
+            }
         }
         catch (Exception ex)
         {
-            StatusMessage = $"设置输出目录时出错: {ex.Message}";
+            StatusMessage = $"创建输出目录失败: {ex.Message}";
             return;
         }
-    }
 
-    // 确保输出目录存在
-    try
-    {
-        if (!Directory.Exists(ConversionSettings.OutputDirectory))
-        {
-            Directory.CreateDirectory(ConversionSettings.OutputDirectory);
-        }
-    }
-    catch (Exception ex)
-    {
-        StatusMessage = $"创建输出目录失败: {ex.Message}";
-        return;
-    }
-
-    IsConverting = true;
-    ConversionProgress = 0;
-    ConversionLog = "";
-    StatusMessage = "正在转换...";
-
-    var progress = new Progress<string>(message =>
-    {
-        ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}\n";
-        ConversionProgress = Math.Min(ConversionProgress + 10, 90);
-    });
-
-    try
-    {
-        ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 开始批量转换 {CurrentAsset.SpineFilePaths.Count} 个文件:\n";
-        
-        int successCount = 0;
-        int failureCount = 0;
-        
-        for (int i = 0; i < CurrentAsset.SpineFilePaths.Count; i++)
-        {
-            var filePath = CurrentAsset.SpineFilePaths[i];
-            var fileName = Path.GetFileName(filePath);
-            var fileNameWithoutExt = Path.GetFileNameWithoutExtension(filePath);
-            
-            // 更新进度
-            ConversionProgress = (double)(i + 1) / CurrentAsset.SpineFilePaths.Count * 90;
-            StatusMessage = $"正在转换 {fileName} ({i + 1}/{CurrentAsset.SpineFilePaths.Count})";
-            
-            ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 正在转换 ({i + 1}/{CurrentAsset.SpineFilePaths.Count}): {fileName}\n";
-            
-            // 为每个文件创建单独的转换日志
-            var fileConversionLog = new StringBuilder();
-            fileConversionLog.AppendLine($"=== SpineForge 文件转换日志 ===");
-            fileConversionLog.AppendLine($"文件名: {fileName}");
-            fileConversionLog.AppendLine($"完整路径: {filePath}");
-            fileConversionLog.AppendLine($"目标版本: {SelectedTargetVersion}");
-            fileConversionLog.AppendLine($"转换时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-            fileConversionLog.AppendLine($"输出目录: {ConversionSettings.OutputDirectory}");
-            fileConversionLog.AppendLine($"使用导出设置: {(ConversionSettings.UseDefaultSettings ? "默认设置" : ConversionSettings.ExportSettingsPath)}");
-            fileConversionLog.AppendLine(new string('=', 50));
-            fileConversionLog.AppendLine();
-
-            // 为每个文件创建单独的 SpineAsset
-            var assetForConversion = new SpineAsset
-            {
-                SpineExecutablePath = CurrentAsset.SpineExecutablePath,
-                SpineFilePath = filePath,
-                FilePath = filePath
-            };
-
-            // 创建文件专用的进度报告器
-            var fileProgress = new Progress<string>(message =>
-            {
-                fileConversionLog.AppendLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}");
-                ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - [{fileName}] {message}\n";
-            });
-
-            ConversionSettings.TargetVersion = SelectedTargetVersion.Version;
-            var success = await _converterService.ConvertAsync(assetForConversion, ConversionSettings, fileProgress);
-            
-            if (success)
-            {
-                successCount++;
-                ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - ✓ 转换成功: {fileName}\n";
-                fileConversionLog.AppendLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - ✓ 转换成功");
-            }
-            else
-            {
-                failureCount++;
-                ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - ✗ 转换失败: {fileName}\n";
-                fileConversionLog.AppendLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - ✗ 转换失败");
-            }
-
-            // 保存每个文件的专用日志
-            await SaveFileConversionLogAsync(ConversionSettings.OutputDirectory, fileNameWithoutExt, fileConversionLog.ToString());
-        }
-
-        ConversionProgress = 100;
-        StatusMessage = $"批量转换完成! 成功: {successCount}, 失败: {failureCount}";
-        ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 批量转换完成! 成功: {successCount}, 失败: {failureCount}\n";
-
-        // 保存总体转换日志
-        await SaveBatchConversionLogAsync(ConversionSettings.OutputDirectory, ConversionLog);
-    }
-    catch (Exception ex)
-    {
-        StatusMessage = $"转换过程中发生错误: {ex.Message}";
-        ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 错误: {ex.Message}\n";
+        IsConverting = true;
         ConversionProgress = 0;
+        ConversionLog = "";
+        StatusMessage = "正在转换...";
+
+        // 创建统一的转换日志
+        var unifiedLog = new StringBuilder();
+        unifiedLog.AppendLine($"=== SpineForge 批量转换日志 ===");
+        unifiedLog.AppendLine($"转换开始时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+        unifiedLog.AppendLine($"文件总数: {CurrentAsset.SpineFilePaths.Count}");
+        unifiedLog.AppendLine($"目标版本: {SelectedTargetVersion}");
+        unifiedLog.AppendLine($"输出目录: {ConversionSettings.OutputDirectory}");
+        unifiedLog.AppendLine(
+            $"使用导出设置: {(ConversionSettings.UseDefaultSettings ? "默认设置" : ConversionSettings.ExportSettingsPath)}");
+        unifiedLog.AppendLine(new string('=', 60));
+        unifiedLog.AppendLine();
+
+        var progress = new Progress<string>(message =>
+        {
+            var logEntry = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}";
+            ConversionLog += logEntry + "\n";
+            unifiedLog.AppendLine(logEntry);
+            ConversionProgress = Math.Min(ConversionProgress + 10, 90);
+        });
+
+        try
+        {
+            var batchStartTime = DateTime.Now;
+            ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 开始批量转换 {CurrentAsset.SpineFilePaths.Count} 个文件:\n";
+            unifiedLog.AppendLine(
+                $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 开始批量转换 {CurrentAsset.SpineFilePaths.Count} 个文件:");
+
+            int successCount = 0;
+            int failureCount = 0;
+
+            for (int i = 0; i < CurrentAsset.SpineFilePaths.Count; i++)
+            {
+                var filePath = CurrentAsset.SpineFilePaths[i];
+                var fileName = Path.GetFileName(filePath);
+                var fileStartTime = DateTime.Now;
+
+                // 更新进度
+                ConversionProgress = (double)(i + 1) / CurrentAsset.SpineFilePaths.Count * 90;
+                StatusMessage = $"正在转换 {fileName} ({i + 1}/{CurrentAsset.SpineFilePaths.Count})";
+
+                // 记录文件开始转换
+                var startLogEntry =
+                    $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 开始转换 ({i + 1}/{CurrentAsset.SpineFilePaths.Count}): {fileName}";
+                ConversionLog += startLogEntry + "\n";
+                unifiedLog.AppendLine();
+                unifiedLog.AppendLine($"--- 文件 {i + 1}: {fileName} ---");
+                unifiedLog.AppendLine($"完整路径: {filePath}");
+                unifiedLog.AppendLine(startLogEntry);
+
+                // 为每个文件创建单独的 SpineAsset
+                var assetForConversion = new SpineAsset
+                {
+                    SpineExecutablePath = CurrentAsset.SpineExecutablePath,
+                    SpineFilePath = filePath,
+                    FilePath = filePath
+                };
+
+                // 创建文件专用的进度报告器
+                var fileProgress = new Progress<string>(message =>
+                {
+                    var logEntry = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - [{fileName}] {message}";
+                    ConversionLog += logEntry + "\n";
+                    unifiedLog.AppendLine(logEntry);
+                });
+
+                ConversionSettings.TargetVersion = SelectedTargetVersion.Version;
+                var success =
+                    await _converterService.ConvertAsync(assetForConversion, ConversionSettings, fileProgress);
+
+                var fileEndTime = DateTime.Now;
+                var fileDuration = fileEndTime - fileStartTime;
+
+                if (success)
+                {
+                    successCount++;
+                    var successEntry =
+                        $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - ✓ 转换成功: {fileName} (耗时: {fileDuration.TotalSeconds:F1}秒)";
+                    ConversionLog += successEntry + "\n";
+                    unifiedLog.AppendLine(successEntry);
+                }
+                else
+                {
+                    failureCount++;
+                    var failureEntry =
+                        $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - ✗ 转换失败: {fileName} (耗时: {fileDuration.TotalSeconds:F1}秒)";
+                    ConversionLog += failureEntry + "\n";
+                    unifiedLog.AppendLine(failureEntry);
+                }
+            }
+
+            var batchEndTime = DateTime.Now;
+            var totalDuration = batchEndTime - batchStartTime;
+            var averageTime = totalDuration.TotalSeconds / CurrentAsset.SpineFilePaths.Count;
+
+            ConversionProgress = 100;
+            StatusMessage = $"批量转换完成! 成功: {successCount}, 失败: {failureCount}";
+
+            // 添加统计信息
+            unifiedLog.AppendLine();
+            unifiedLog.AppendLine(new string('=', 60));
+            unifiedLog.AppendLine($"=== 转换完成统计 ===");
+            unifiedLog.AppendLine($"转换结束时间: {batchEndTime:yyyy-MM-dd HH:mm:ss}");
+            unifiedLog.AppendLine($"总耗时: {totalDuration.TotalMinutes:F1} 分钟 ({totalDuration.TotalSeconds:F1} 秒)");
+            unifiedLog.AppendLine($"成功转换: {successCount} 个文件");
+            unifiedLog.AppendLine($"转换失败: {failureCount} 个文件");
+            unifiedLog.AppendLine($"平均每文件耗时: {averageTime:F1} 秒");
+            unifiedLog.AppendLine($"转换成功率: {(successCount * 100.0 / CurrentAsset.SpineFilePaths.Count):F1}%");
+
+            var summaryEntry =
+                $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 批量转换完成! 成功: {successCount}, 失败: {failureCount}, 总耗时: {totalDuration.TotalMinutes:F1}分钟";
+            ConversionLog += summaryEntry + "\n";
+
+            // 只保存一个统一的日志文件
+            await SaveUnifiedConversionLogAsync(ConversionSettings.OutputDirectory, unifiedLog.ToString());
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"转换过程中发生错误: {ex.Message}";
+            var errorEntry = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 错误: {ex.Message}";
+            ConversionLog += errorEntry + "\n";
+            unifiedLog.AppendLine(errorEntry);
+            ConversionProgress = 0;
+
+            // 即使出错也保存日志
+            await SaveUnifiedConversionLogAsync(ConversionSettings.OutputDirectory, unifiedLog.ToString());
+        }
+        finally
+        {
+            IsConverting = false;
+        }
     }
-    finally
+
+    private async Task SaveUnifiedConversionLogAsync(string outputDir, string logContent)
     {
-        IsConverting = false;
-    }
-}
+        try
+        {
+            if (string.IsNullOrWhiteSpace(logContent) || string.IsNullOrWhiteSpace(outputDir))
+                return;
 
-private async Task SaveFileConversionLogAsync(string outputDir, string fileNameWithoutExt, string logContent)
-{
-    try
+            if (!Directory.Exists(outputDir))
+                Directory.CreateDirectory(outputDir);
+
+            string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            string logFileName = $"SpineForge_Conversion_{timestamp}.log";
+            string logFilePath = Path.Combine(outputDir, logFileName);
+
+            await File.WriteAllTextAsync(logFilePath, logContent, Encoding.UTF8);
+            ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - ✓ 转换日志已保存: {logFileName}\n";
+        }
+        catch (Exception ex)
+        {
+            ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - ⚠ 保存日志失败: {ex.Message}\n";
+        }
+    }
+
+    private async Task SaveFileConversionLogAsync(string outputDir, string fileNameWithoutExt, string logContent)
     {
-        if (string.IsNullOrWhiteSpace(logContent) || string.IsNullOrWhiteSpace(outputDir))
-            return;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(logContent) || string.IsNullOrWhiteSpace(outputDir))
+                return;
 
-        if (!Directory.Exists(outputDir))
-            Directory.CreateDirectory(outputDir);
+            if (!Directory.Exists(outputDir))
+                Directory.CreateDirectory(outputDir);
 
-        string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-        // 清理文件名中的无效字符
-        string safeFileName = string.Join("_", fileNameWithoutExt.Split(Path.GetInvalidFileNameChars()));
-        string logFileName = $"SpineForge_{safeFileName}_{timestamp}.log";
-        string logFilePath = Path.Combine(outputDir, logFileName);
+            string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            // 清理文件名中的无效字符
+            string safeFileName = string.Join("_", fileNameWithoutExt.Split(Path.GetInvalidFileNameChars()));
+            string logFileName = $"SpineForge_{safeFileName}_{timestamp}.log";
+            string logFilePath = Path.Combine(outputDir, logFileName);
 
-        await File.WriteAllTextAsync(logFilePath, logContent, Encoding.UTF8);
-        ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 文件日志已保存: {logFileName}\n";
+            await File.WriteAllTextAsync(logFilePath, logContent, Encoding.UTF8);
+            ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 文件日志已保存: {logFileName}\n";
+        }
+        catch (Exception ex)
+        {
+            ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - ⚠ 保存文件日志失败: {ex.Message}\n";
+        }
     }
-    catch (Exception ex)
+
+    private async Task SaveBatchConversionLogAsync(string outputDir, string logContent)
     {
-        ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - ⚠ 保存文件日志失败: {ex.Message}\n";
+        try
+        {
+            if (string.IsNullOrWhiteSpace(logContent) || string.IsNullOrWhiteSpace(outputDir))
+                return;
+
+            if (!Directory.Exists(outputDir))
+                Directory.CreateDirectory(outputDir);
+
+            string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            string logFileName = $"SpineForge_BatchConversion_{timestamp}.log";
+            string logFilePath = Path.Combine(outputDir, logFileName);
+
+            string logHeader = $"SpineForge 批量转换总体日志\n";
+            logHeader += $"生成时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss}\n";
+            logHeader += $"输出目录: {outputDir}\n";
+            logHeader += new string('=', 50) + "\n\n";
+
+            string fullLogContent = logHeader + logContent;
+
+            await File.WriteAllTextAsync(logFilePath, fullLogContent, Encoding.UTF8);
+            ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - ✓ 批量转换日志已保存: {logFileName}\n";
+        }
+        catch (Exception ex)
+        {
+            ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - ⚠ 保存批量日志失败: {ex.Message}\n";
+        }
     }
-}
-
-private async Task SaveBatchConversionLogAsync(string outputDir, string logContent)
-{
-    try
-    {
-        if (string.IsNullOrWhiteSpace(logContent) || string.IsNullOrWhiteSpace(outputDir))
-            return;
-
-        if (!Directory.Exists(outputDir))
-            Directory.CreateDirectory(outputDir);
-
-        string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-        string logFileName = $"SpineForge_BatchConversion_{timestamp}.log";
-        string logFilePath = Path.Combine(outputDir, logFileName);
-
-        string logHeader = $"SpineForge 批量转换总体日志\n";
-        logHeader += $"生成时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss}\n";
-        logHeader += $"输出目录: {outputDir}\n";
-        logHeader += new string('=', 50) + "\n\n";
-
-        string fullLogContent = logHeader + logContent;
-
-        await File.WriteAllTextAsync(logFilePath, fullLogContent, Encoding.UTF8);
-        ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - ✓ 批量转换日志已保存: {logFileName}\n";
-    }
-    catch (Exception ex)
-    {
-        ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - ⚠ 保存批量日志失败: {ex.Message}\n";
-    }
-}
 
     [RelayCommand]
     private void OpenOutputDirectory()

@@ -1,15 +1,15 @@
-﻿using System;
-using System.Collections.Specialized;
+﻿using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using Point = System.Windows.Point;
 using Size = System.Windows.Size;
 using UserControl = System.Windows.Controls.UserControl;
+// ReSharper disable RedundantDefaultMemberInitializer
+// ReSharper disable LocalizableElement
 
-namespace SpineForge.Controls
+namespace SpineForge.Views
 {
     public partial class CollapsibleCard : UserControl
     {
@@ -31,30 +31,31 @@ namespace SpineForge.Controls
 
         public string Title
         {
-            get { return (string)GetValue(TitleProperty); }
-            set { SetValue(TitleProperty, value); }
+            get => (string)GetValue(TitleProperty);
+            set => SetValue(TitleProperty, value);
         }
 
         public object CardContent
         {
-            get { return GetValue(CardContentProperty); }
-            set { SetValue(CardContentProperty, value); }
+            get => GetValue(CardContentProperty);
+            set => SetValue(CardContentProperty, value);
         }
 
         public bool IsExpanded
         {
-            get { return (bool)GetValue(IsExpandedProperty); }
-            set { SetValue(IsExpandedProperty, value); }
+            get => (bool)GetValue(IsExpandedProperty);
+            set => SetValue(IsExpandedProperty, value);
         }
         
         public int RefreshTrigger
         {
-            get { return (int)GetValue(RefreshTriggerProperty); }
-            set { SetValue(RefreshTriggerProperty, value); }
+            get => (int)GetValue(RefreshTriggerProperty);
+            set => SetValue(RefreshTriggerProperty, value);
         }
 
         private double _savedContentHeight = double.NaN;
         private bool _isAnimating = false;
+        private bool _pendingStateChange = false;
         private bool _isInitialized = false;
         private bool _heightCached = false;
 
@@ -177,8 +178,16 @@ namespace SpineForge.Controls
         {
             var card = (CollapsibleCard)d;
             Console.WriteLine($"IsExpanded changed to: {e.NewValue}");
+    
+            // 如果正在动画中，记录待处理的状态变更
+            if (card._isAnimating)
+            {
+                card._pendingStateChange = true;
+                return;
+            }
+    
             card.UpdateVisualState(true);
-            card.UpdateIconRotation(true); // 更新图标旋转
+            card.UpdateIconRotation(true);
         }
 
         private static void OnCardContentChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -227,13 +236,13 @@ namespace SpineForge.Controls
         private void UpdateVisualState(bool useTransitions)
         {
             Console.WriteLine($"UpdateVisualState called: IsExpanded={IsExpanded}, useTransitions={useTransitions}");
-            
+    
             if (_contentPresenter == null)
             {
                 Console.WriteLine("ContentPresenter is null, cannot update visual state");
                 return;
             }
-            
+    
             if (_isAnimating)
             {
                 Console.WriteLine("Already animating, skipping");
@@ -256,44 +265,41 @@ namespace SpineForge.Controls
         private void ExpandWithAnimation(bool useTransitions)
         {
             Console.WriteLine("Starting expand animation");
-            
-            // 1. 测量内容的期望高度
+    
             double targetHeight = MeasureContentHeight();
             Console.WriteLine($"Target height: {targetHeight}");
-            
+    
             if (!useTransitions || targetHeight <= 0)
             {
-                // 无动画情况直接设置Auto
                 _contentPresenter.Height = double.NaN;
                 Console.WriteLine("No animation, set to Auto directly");
                 return;
             }
-            
-            // 2. 先设置为0准备动画
+    
             _contentPresenter.Height = 0;
-            
-            // 3. 创建动画，但不播放到完整高度，而是播放到90%左右
-            double animationTargetHeight = targetHeight * 0.9; // 播放到90%
-            
+    
+            double animationTargetHeight = targetHeight * 0.9;
+    
             var animation = new DoubleAnimation
             {
                 From = 0,
                 To = animationTargetHeight,
-                Duration = TimeSpan.FromMilliseconds(200), // 稍微缩短动画时间
+                Duration = TimeSpan.FromMilliseconds(200),
                 EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
             };
-            
-            // 4. 动画完成后立即切换到Auto，避免弹跳
+    
             animation.Completed += (s, e) =>
             {
-                // 立即清除动画控制并设置为Auto
+                // 清除动画并设置为Auto
                 _contentPresenter.BeginAnimation(FrameworkElement.HeightProperty, null);
                 _contentPresenter.Height = double.NaN;
-                
+        
                 _isAnimating = false;
-                // Console.WriteLine("展开完成，已恢复Auto状态");
+        
+                // 处理待处理的状态变更
+                HandlePendingStateChange();
             };
-            
+    
             _isAnimating = true;
             _contentPresenter.BeginAnimation(FrameworkElement.HeightProperty, animation);
         }
@@ -301,26 +307,22 @@ namespace SpineForge.Controls
         private void CollapseWithAnimation(bool useTransitions)
         {
             Console.WriteLine("Starting collapse animation");
-            
-            // 1. 获取当前实际高度
+    
             double currentHeight = _contentPresenter.ActualHeight;
             Console.WriteLine($"Current height: {currentHeight}");
-            
-            // 2. 如果当前是Auto状态，先固定为实际高度
+    
             if (double.IsNaN(_contentPresenter.Height))
             {
                 _contentPresenter.Height = currentHeight;
             }
-            
+    
             if (!useTransitions || currentHeight <= 0)
             {
-                // 无动画情况直接设置0
                 _contentPresenter.Height = 0;
                 Console.WriteLine("No animation, set to 0 directly");
                 return;
             }
-            
-            // 3. 创建收缩动画
+    
             var animation = new DoubleAnimation
             {
                 From = currentHeight,
@@ -328,18 +330,34 @@ namespace SpineForge.Controls
                 Duration = TimeSpan.FromMilliseconds(150),
                 EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
             };
-            
+    
             animation.Completed += (s, e) =>
             {
                 _contentPresenter.BeginAnimation(FrameworkElement.HeightProperty, null);
                 _contentPresenter.Height = 0;
-                
+        
                 _isAnimating = false;
-                Console.WriteLine("收缩完成");
+        
+                // 处理待处理的状态变更
+                HandlePendingStateChange();
             };
-            
+    
             _isAnimating = true;
             _contentPresenter.BeginAnimation(FrameworkElement.HeightProperty, animation);
+        }
+        
+        private void HandlePendingStateChange()
+        {
+            if (_pendingStateChange)
+            {
+                _pendingStateChange = false;
+                // 延迟一帧再处理，确保当前动画完全结束
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    UpdateVisualState(true);
+                    UpdateIconRotation(true);
+                }), System.Windows.Threading.DispatcherPriority.Render);
+            }
         }
         
         private double MeasureContentHeight()

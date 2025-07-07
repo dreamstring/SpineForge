@@ -49,4 +49,8 @@
     <Resource Include="icon.ico" />
   </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Helpers\" />
+    </ItemGroup>
+
 </Project>

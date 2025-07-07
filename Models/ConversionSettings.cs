@@ -1,6 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using System;
 using System.IO;
+// ReSharper disable LocalizableElement
 
 namespace SpineForge.Models
 {
@@ -60,6 +60,21 @@ namespace SpineForge.Models
         
         [ObservableProperty]
         private string _lastVersion = string.Empty;
+        
+        [ObservableProperty]
+        private bool _spineExecutableCardExpanded = true;
+
+        [ObservableProperty]
+        private bool _spineFileSelectionCardExpanded = true;
+
+        [ObservableProperty]
+        private bool _conversionSettingsCardExpanded = true;
+
+        [ObservableProperty]
+        private bool _exportSettingsCardExpanded = true;
+
+        [ObservableProperty]
+        private bool _textureSettingsCardExpanded = false;
 
         // 计算属性
         public string ExportSettingsPathDisplay => UseDefaultSettings 
