@@ -34,7 +34,7 @@
                                VerticalAlignment="Center"/>
 
                     <ui:Button Grid.Column="1"
-                               x:Name="PartToggleIcon"
+                               x:Name="PART_ToggleIcon"
                                Width="24"
                                Height="24"
                                Background="Transparent"
@@ -55,7 +55,7 @@
 
             <!-- Content -->
             <ContentPresenter Grid.Row="1"
-                              x:Name="PartContentPresenter"
+                              x:Name="PART_ContentPresenter"
                               Content="{Binding CardContent, RelativeSource={RelativeSource AncestorType=UserControl}}"
                               Margin="16,0,16,16"
                               ClipToBounds="True"/>
@@ -65,7 +65,7 @@
     <!-- Visual State Manager for Icon Rotation -->
     <UserControl.Resources>
         <Storyboard x:Key="ExpandIconStoryboard">
-            <DoubleAnimation Storyboard.TargetName="IconRotateTransform"
+            <DoubleAnimation Storyboard.TargetName="PART_IconRotateTransform"
                              Storyboard.TargetProperty="Angle"
                              To="180"
                              Duration="0:0:0.3">

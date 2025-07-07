@@ -1,6 +1,6 @@
 # SpineForge
 
-<img src="Resources/SpineForge-1.0.4.png" alt="SpineForge" width="600">
+<img src="Resources/SpineForge-1.0.5.png" alt="SpineForge" width="600">
 
 [中文](#中文) | [English](#english)
 
