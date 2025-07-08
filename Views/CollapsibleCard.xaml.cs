@@ -93,13 +93,17 @@ namespace SpineForge.Views
         // 事件处理程序
         private void HeaderBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            // 输出“Header clicked, toggling IsExpanded”
             Console.WriteLine("Header clicked, toggling IsExpanded");
+            // 切换IsExpanded的值
             IsExpanded = !IsExpanded;
         }
 
         private void ToggleButton_Click(object sender, RoutedEventArgs e)
         {
+            // 输出Toggle button clicked, toggling IsExpanded
             Console.WriteLine("Toggle button clicked, toggling IsExpanded");
+            // 切换IsExpanded的值
             IsExpanded = !IsExpanded;
         }
 
@@ -121,6 +125,7 @@ namespace SpineForge.Views
             }), System.Windows.Threading.DispatcherPriority.Render);
         }
 
+// 当CollapsibleCard的DataContext属性发生变化时，调用此方法
         private void CollapsibleCard_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
             if (e.OldValue != null)

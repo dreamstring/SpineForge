@@ -106,6 +106,13 @@ namespace SpineForge.Models
                 return Directory.Exists(OutputDirectory);
             }
         }
+        
+        public bool HasChinesePathInOutput => 
+            !string.IsNullOrEmpty(OutputDirectory) && 
+            OutputDirectory.Any(c => c > 127);
+
+        public bool IsOutputDirectoryValidAndSafe => 
+            IsOutputDirectoryValid && !HasChinesePathInOutput;
 
         public ConversionSettings()
         {
@@ -248,6 +255,8 @@ namespace SpineForge.Models
         partial void OnOutputDirectoryChanged(string value)
         {
             OnPropertyChanged(nameof(IsOutputDirectoryValid));
+            OnPropertyChanged(nameof(HasChinesePathInOutput));
+            OnPropertyChanged(nameof(IsOutputDirectoryValidAndSafe));
         }
 
         partial void OnExportSettingsPathChanged(string value)

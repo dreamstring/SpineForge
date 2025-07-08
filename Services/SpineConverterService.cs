@@ -289,6 +289,9 @@ namespace SpineForge.Services
                 {
                     Directory.CreateDirectory(outputDir);
                 }
+                
+                // 显示当前导出设置的图集尺寸
+                progress?.Report($"图集设置: {settings.MaxWidth} x {settings.MaxHeight}");
 
                 // 处理中文路径问题
                 var actualInputFile = spineFile;
@@ -918,6 +921,11 @@ namespace SpineForge.Services
             // 基本参数
             arguments.AddRange(["-i", $"\"{asset.FilePath}\""]);
             arguments.AddRange(["-o", $"\"{settings.OutputDirectory}\""]);
+            
+            if (!string.IsNullOrEmpty(settings.TargetVersion))
+            {
+                arguments.AddRange(["--update", settings.TargetVersion]);
+            }
 
             // 创建临时导出设置文件
             var tempSettingsPath = CreateTempExportSettings(asset, settings);

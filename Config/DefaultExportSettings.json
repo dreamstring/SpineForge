@@ -43,7 +43,7 @@
 	"fast": false,
 	"limitMemory": true,
 	"currentProject": true,
-	"packing": "rectangles",
+	"packing": "polygons",
 	"prettyPrint": true,
 	"legacyOutput": false,
 	"webp": null,

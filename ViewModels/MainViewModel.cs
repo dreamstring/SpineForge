@@ -33,6 +33,33 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private SpineVersion? _selectedTargetVersion;
     [ObservableProperty] private ObservableCollection<SpineVersion> _availableVersions = new();
 
+    // 检测是否有中文路径
+    public bool HasChinesePaths =>
+        HasChinesePathInSpineFiles ||
+        ConversionSettings.HasChinesePathInOutput ||
+        HasChinesePathInSpineExecutable;
+
+    public bool HasChinesePathInSpineFiles =>
+        CurrentAsset?.SpineFilePaths?.Any(ContainsNonAsciiCharacters) == true;
+
+    public bool HasChinesePathInSpineExecutable =>
+        ContainsNonAsciiCharacters(CurrentAsset?.SpineExecutablePath);
+
+    // 更新 CanStartConversion 属性
+    public bool CanStartConversion =>
+        !IsConverting &&
+        !HasChinesePaths &&
+        HasSpineFiles &&
+        SelectedTargetVersion != null &&
+        ConversionSettings.IsExportSettingsValid;
+    
+    public bool ButtonEnabled => CanStartConversion;
+    
+    private bool ContainsNonAsciiCharacters(string path)
+    {
+        return !string.IsNullOrEmpty(path) && path.Any(c => c > 127);
+    }
+    
     // 用于 UI 绑定的显示属性（简化为计算属性）
     public string SpineExecutablePathDisplay =>
         string.IsNullOrEmpty(CurrentAsset?.SpineExecutablePath) ? "未选择" : CurrentAsset.SpineExecutablePath;
@@ -106,14 +133,17 @@ public partial class MainViewModel : ObservableObject
     }
 
     // 自动保存事件处理
-// 修改现有的 OnCurrentAssetPropertyChanged 方法
     private async void OnCurrentAssetPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         // 通知相关显示属性更新
         if (e.PropertyName == nameof(CurrentAsset.SpineExecutablePath))
         {
             OnPropertyChanged(nameof(SpineExecutablePathDisplay));
+            OnPropertyChanged(nameof(HasChinesePathInSpineExecutable)); // 新增
+            OnPropertyChanged(nameof(HasChinesePaths)); // 新增
+            OnPropertyChanged(nameof(CanStartConversion)); // 修改为使用新属性
             OnPropertyChanged(nameof(CanConvert));
+            UpdateStatusMessage();
         }
         else if (e.PropertyName == nameof(CurrentAsset.SpineFilePath) ||
                  e.PropertyName == nameof(CurrentAsset.SpineFilePaths))
@@ -121,11 +151,16 @@ public partial class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(SpineFilePathDisplay));
             OnPropertyChanged(nameof(HasSpineFiles));
             OnPropertyChanged(nameof(HasMultipleSpineFiles)); // 新增
+            OnPropertyChanged(nameof(HasChinesePathInSpineFiles)); // 新增
+            OnPropertyChanged(nameof(HasChinesePaths)); // 新增
+            OnPropertyChanged(nameof(CanStartConversion)); // 修改为使用新属性
             OnPropertyChanged(nameof(CanConvert));
+            UpdateStatusMessage();
         }
         else if (e.PropertyName == nameof(CurrentAsset.IsReady))
         {
             OnPropertyChanged(nameof(CanConvert));
+            UpdateStatusMessage();
         }
 
         // 自动保存
@@ -138,12 +173,22 @@ public partial class MainViewModel : ObservableObject
         if (e.PropertyName == nameof(ConversionSettings.OutputDirectory))
         {
             OnPropertyChanged(nameof(OutputDirectoryDisplay));
+            OnPropertyChanged(nameof(HasChinesePaths)); // 新增
+            OnPropertyChanged(nameof(CanStartConversion)); // 新增
+            UpdateStatusMessage();
+        }
+        else if (e.PropertyName == nameof(ConversionSettings.HasChinesePathInOutput))
+        {
+            OnPropertyChanged(nameof(HasChinesePaths)); // 新增
+            OnPropertyChanged(nameof(CanStartConversion)); // 新增
+            UpdateStatusMessage();
         }
         else if (e.PropertyName == nameof(ConversionSettings.ExportSettingsPathDisplay) ||
                  e.PropertyName == nameof(ConversionSettings.UseDefaultSettings) ||
                  e.PropertyName == nameof(ConversionSettings.ExportSettingsPath))
         {
             OnPropertyChanged(nameof(ExportSettingsPathDisplayProxy));
+            UpdateStatusMessage();
         }
 
         // 自动保存
@@ -193,12 +238,18 @@ public partial class MainViewModel : ObservableObject
             ConversionSettings.SelectedTargetVersion = value.Version;
         }
 
+        OnPropertyChanged(nameof(CanStartConversion)); // 使用新属性
         OnPropertyChanged(nameof(CanConvert));
+        OnPropertyChanged(nameof(ButtonEnabled));
+        UpdateStatusMessage();
     }
 
     partial void OnIsConvertingChanged(bool value)
     {
+        OnPropertyChanged(nameof(CanStartConversion)); // 使用新属性
         OnPropertyChanged(nameof(CanConvert));
+        OnPropertyChanged(nameof(ButtonEnabled));
+        UpdateStatusMessage();
     }
 
     // 加载保存的设置
@@ -917,6 +968,14 @@ public partial class MainViewModel : ObservableObject
         else if (SelectedTargetVersion == null)
         {
             StatusMessage = "请选择目标版本";
+        }
+        else if (HasChinesePaths)
+        {
+            StatusMessage = "路径包含中文字符，无法转换";
+        }
+        else if (IsConverting)
+        {
+            StatusMessage = "正在转换中，请稍候...";
         }
         else
         {

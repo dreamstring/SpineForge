@@ -22,6 +22,7 @@
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter" />
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+        <converters:BooleanToSeverityConverter x:Key="BooleanToSeverityConverter" />
     </ui:FluentWindow.Resources>
 
     <Grid>
@@ -44,10 +45,10 @@
             <StackPanel>
 
                 <!-- Spine 可执行文件选择 -->
-                <views:CollapsibleCard x:Name="SpineExecutableCard" 
-                                          Title="Spine 可执行文件设置"
-                                          IsExpanded="{Binding ConversionSettings.SpineExecutableCardExpanded,Mode=TwoWay}"
-                                          Margin="0,0,0,10">
+                <views:CollapsibleCard x:Name="SpineExecutableCard"
+                                       Title="Spine 可执行文件设置"
+                                       IsExpanded="{Binding ConversionSettings.SpineExecutableCardExpanded,Mode=TwoWay}"
+                                       Margin="0,0,0,10">
                     <views:CollapsibleCard.CardContent>
                         <StackPanel Margin="15">
 
@@ -96,10 +97,10 @@
 
                 <!-- .spine 文件选择区域 -->
                 <views:CollapsibleCard x:Name="SpineFileSelectionCard"
-                                          Title="选择 Spine 文件"
-                                          IsExpanded="{Binding ConversionSettings.SpineFileSelectionCardExpanded,Mode=TwoWay}"
-                                          RefreshTrigger="{Binding CurrentAsset.RefreshTrigger}"
-                                          Margin="0,0,0,10">
+                                       Title="选择 Spine 文件"
+                                       IsExpanded="{Binding ConversionSettings.SpineFileSelectionCardExpanded,Mode=TwoWay}"
+                                       RefreshTrigger="{Binding CurrentAsset.RefreshTrigger}"
+                                       Margin="0,0,0,10">
                     <views:CollapsibleCard.CardContent>
                         <StackPanel Margin="15">
                             <ui:InfoBar Title="提示"
@@ -232,9 +233,9 @@
                 </views:CollapsibleCard>
 
                 <views:CollapsibleCard x:Name="ConversionSettingsCard"
-                                          Title="转换设置"
-                                          IsExpanded="{Binding ConversionSettings.ConversionSettingsCardExpanded,Mode=TwoWay}"
-                                          Margin="0,0,0,10">
+                                       Title="转换设置"
+                                       IsExpanded="{Binding ConversionSettings.ConversionSettingsCardExpanded,Mode=TwoWay}"
+                                       Margin="0,0,0,10">
                     <views:CollapsibleCard.CardContent>
                         <StackPanel Margin="15">
 
@@ -291,11 +292,36 @@
                                             PlaceholderText="留空则保存在原文件旁边"
                                             Margin="0,0,6,0" />
 
+                                <!-- 状态符号 -->
                                 <ui:SymbolIcon Grid.Column="2"
-                                               Symbol="CheckmarkCircle24"
-                                               Foreground="Green"
-                                               Visibility="{Binding ConversionSettings.IsOutputDirectoryValid, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                               Margin="0,0,6,0" />
+                                               Margin="0,0,6,0"
+                                               VerticalAlignment="Center">
+                                    <ui:SymbolIcon.Style>
+                                        <Style TargetType="ui:SymbolIcon">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <!-- 如果包含中文路径，显示红色叉号 -->
+                                                <DataTrigger
+                                                    Binding="{Binding ConversionSettings.HasChinesePathInOutput}"
+                                                    Value="True">
+                                                    <Setter Property="Symbol" Value="DismissCircle24" />
+                                                    <Setter Property="Foreground" Value="Red" />
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                    <Setter Property="ToolTip" Value="路径包含中文字符，可能导致转换失败" />
+                                                </DataTrigger>
+                                                <!-- 如果路径有效且无中文，显示绿色勾号 -->
+                                                <DataTrigger
+                                                    Binding="{Binding ConversionSettings.IsOutputDirectoryValidAndSafe}"
+                                                    Value="True">
+                                                    <Setter Property="Symbol" Value="CheckmarkCircle24" />
+                                                    <Setter Property="Foreground" Value="Green" />
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                    <Setter Property="ToolTip" Value="输出目录有效" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ui:SymbolIcon.Style>
+                                </ui:SymbolIcon>
 
                                 <ui:Button Grid.Column="3"
                                            Content="选择目录"
@@ -421,9 +447,9 @@
                 </views:CollapsibleCard>
 
                 <views:CollapsibleCard x:Name="ExportSettingsCard"
-                                          Title="开始转换"
-                                          IsExpanded="{Binding ConversionSettings.ExportSettingsCardExpanded,Mode=TwoWay}"
-                                          Margin="0,0,0,10">
+                                       Title="开始转换"
+                                       IsExpanded="{Binding ConversionSettings.ExportSettingsCardExpanded,Mode=TwoWay}"
+                                       Margin="0,0,0,10">
                     <views:CollapsibleCard.CardContent>
                         <StackPanel Margin="15">
 
@@ -438,7 +464,7 @@
                             <!-- 转换按钮 -->
                             <ui:Button Content="开始转换"
                                        Command="{Binding StartConversionCommand}"
-                                       IsEnabled="{Binding IsConverting, Converter={StaticResource InverseBooleanConverter}}"
+                                       IsEnabled="{Binding CanStartConversion}"
                                        HorizontalAlignment="Center"
                                        Padding="20,6"
                                        Margin="0,0,0,10"
@@ -446,6 +472,7 @@
                                 <ui:Button.Style>
                                     <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
                                         <Style.Triggers>
+                                            <!-- 转换中时的样式 -->
                                             <DataTrigger Binding="{Binding IsConverting}" Value="True">
                                                 <Setter Property="Content" Value="转换中..." />
                                                 <Setter Property="Appearance" Value="Secondary" />
@@ -466,10 +493,10 @@
 
                 <!-- 转换日志区域 -->
                 <views:CollapsibleCard x:Name="TextureSettingsCard"
-                                          Title="转换日志"
-                                          IsExpanded="{Binding ConversionSettings.TextureSettingsCardExpanded,Mode=TwoWay}"
-                                          Margin="0,0,0,10"
-                                          Visibility="{Binding ConversionLog, Converter={StaticResource StringToVisibilityConverter}}">
+                                       Title="转换日志"
+                                       IsExpanded="{Binding ConversionSettings.TextureSettingsCardExpanded,Mode=TwoWay}"
+                                       Margin="0,0,0,10"
+                                       Visibility="{Binding ConversionLog, Converter={StaticResource StringToVisibilityConverter}}">
                     <views:CollapsibleCard.CardContent>
                         <StackPanel Margin="15">
 
