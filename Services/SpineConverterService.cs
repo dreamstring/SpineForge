@@ -282,7 +282,8 @@ namespace SpineForge.Services
                 progress?.Report($"输出目录: {settings.OutputDirectory}");
 
                 var outputDir = settings.OutputDirectory;
-                var baseFileName = Path.GetFileNameWithoutExtension(spineFile);
+                var originalFileName = Path.GetFileNameWithoutExtension(spineFile);
+                var baseFileName = settings.AddPrefix ? $"{settings.FilePrefix}{originalFileName}" : originalFileName;
 
                 // 确保输出目录存在
                 if (!Directory.Exists(outputDir))

@@ -7,9 +7,9 @@ using System.ComponentModel;
 using System.IO;
 using System.Reflection;
 using System.Text;
+
 // ReSharper disable UnusedMember.Local
 // ReSharper disable LocalizableElement
-
 // ReSharper disable RedundantDefaultMemberInitializer
 // ReSharper disable UnusedVariable
 
@@ -52,14 +52,14 @@ public partial class MainViewModel : ObservableObject
         HasSpineFiles &&
         SelectedTargetVersion != null &&
         ConversionSettings.IsExportSettingsValid;
-    
+
     public bool ButtonEnabled => CanStartConversion;
-    
+
     private bool ContainsNonAsciiCharacters(string path)
     {
         return !string.IsNullOrEmpty(path) && path.Any(c => c > 127);
     }
-    
+
     // 用于 UI 绑定的显示属性（简化为计算属性）
     public string SpineExecutablePathDisplay =>
         string.IsNullOrEmpty(CurrentAsset?.SpineExecutablePath) ? "未选择" : CurrentAsset.SpineExecutablePath;
@@ -728,6 +728,11 @@ public partial class MainViewModel : ObservableObject
                 unifiedLog.AppendLine($"完整路径: {filePath}");
                 unifiedLog.AppendLine(startLogEntry);
 
+                var preConversionSnapshot = TakeDirectorySnapshot(ConversionSettings.OutputDirectory);
+                var snapshotLog =
+                    $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - [{fileName}] 记录转换前快照，现有文件数: {preConversionSnapshot.Count}";
+                unifiedLog.AppendLine(snapshotLog);
+
                 // 为每个文件创建单独的 SpineAsset
                 var assetForConversion = new SpineAsset
                 {
@@ -754,6 +759,10 @@ public partial class MainViewModel : ObservableObject
                 if (success)
                 {
                     successCount++;
+
+                    // 使用快照进行文件重命名
+                    await HandleFileRenamingWithSnapshotAsync(filePath, fileName, preConversionSnapshot, unifiedLog);
+
                     var successEntry =
                         $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - ✓ 转换成功: {fileName} (耗时: {fileDuration.TotalSeconds:F1}秒)";
                     ConversionLog += successEntry + "\n";
@@ -808,6 +817,197 @@ public partial class MainViewModel : ObservableObject
         finally
         {
             IsConverting = false;
+        }
+    }
+    
+    private HashSet<string> TakeDirectorySnapshot(string directory)
+    {
+        try
+        {
+            if (!Directory.Exists(directory))
+            {
+                return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            return Directory.GetFiles(directory)
+                .Select(Path.GetFileName)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+        catch (Exception ex)
+        {
+            // 记录错误但不抛出异常
+            ConversionLog += $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - 记录目录快照时出错: {ex.Message}\n";
+            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
+    // 修改后的重命名方法：使用快照比较
+    private async Task HandleFileRenamingWithSnapshotAsync(string originalSpineFile, string fileName,
+        HashSet<string> preConversionSnapshot, StringBuilder unifiedLog)
+    {
+        try
+        {
+            // 检查是否需要添加前缀
+            if (!ConversionSettings.AddPrefix || string.IsNullOrEmpty(ConversionSettings.FilePrefix))
+            {
+                var skipLog = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - [{fileName}] 跳过重命名（未启用前缀或前缀为空）";
+                unifiedLog.AppendLine(skipLog);
+                return;
+            }
+
+            var outputDir = ConversionSettings.OutputDirectory;
+
+            var logEntry =
+                $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - [{fileName}] 开始重命名文件，添加前缀: {ConversionSettings.FilePrefix}";
+            ConversionLog += logEntry + "\n";
+            unifiedLog.AppendLine(logEntry);
+
+            // 找出新增的文件（转换后才有的）
+            var currentFiles = Directory.GetFiles(outputDir)
+                .Select(Path.GetFileName)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var newFiles = currentFiles.Except(preConversionSnapshot).ToList();
+
+            var newJsonFiles = newFiles.Where(f => f.EndsWith(".json", StringComparison.OrdinalIgnoreCase)).ToList();
+            var newAtlasFiles = newFiles.Where(f => f.EndsWith(".atlas", StringComparison.OrdinalIgnoreCase)).ToList();
+            var newPngFiles = newFiles.Where(f => f.EndsWith(".png", StringComparison.OrdinalIgnoreCase)).ToList();
+
+            var foundFilesLog =
+                $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - [{fileName}] 找到新导出的文件: JSON({newJsonFiles.Count}), Atlas({newAtlasFiles.Count}), PNG({newPngFiles.Count})";
+            ConversionLog += foundFilesLog + "\n";
+            unifiedLog.AppendLine(foundFilesLog);
+
+            // 如果没有找到新文件，记录详细信息
+            if (!newFiles.Any())
+            {
+                var noNewFilesLog = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - [{fileName}] 未找到新导出的文件";
+                ConversionLog += noNewFilesLog + "\n";
+                unifiedLog.AppendLine(noNewFilesLog);
+                unifiedLog.AppendLine(
+                    $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - [{fileName}] 转换前文件数: {preConversionSnapshot.Count}, 转换后文件数: {currentFiles.Count}");
+                return;
+            }
+
+            // 详细记录找到的新文件
+            if (newFiles.Any())
+            {
+                unifiedLog.AppendLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - [{fileName}] 新增文件列表:");
+                foreach (var newFile in newFiles.Take(10)) // 最多显示10个文件
+                {
+                    unifiedLog.AppendLine($"  - {newFile}");
+                }
+
+                if (newFiles.Count > 10)
+                {
+                    unifiedLog.AppendLine($"  ... 还有 {newFiles.Count - 10} 个文件");
+                }
+            }
+
+            int renamedCount = 0;
+
+            // 重命名 JSON 文件
+            foreach (var jsonFileName in newJsonFiles)
+            {
+                var currentName = Path.GetFileNameWithoutExtension(jsonFileName);
+                var newName = $"{ConversionSettings.FilePrefix}{currentName}";
+                var currentPath = Path.Combine(outputDir, jsonFileName);
+                var newPath = Path.Combine(outputDir, $"{newName}.json");
+
+                if (!File.Exists(newPath) && !currentName.StartsWith(ConversionSettings.FilePrefix))
+                {
+                    File.Move(currentPath, newPath);
+                    var renameLog =
+                        $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - [{fileName}] 重命名 JSON: {jsonFileName} -> {newName}.json";
+                    ConversionLog += renameLog + "\n";
+                    unifiedLog.AppendLine(renameLog);
+                    renamedCount++;
+                }
+            }
+
+            // 重命名 Atlas 文件
+            foreach (var atlasFileName in newAtlasFiles)
+            {
+                var currentName = Path.GetFileNameWithoutExtension(atlasFileName);
+                var newName = $"{ConversionSettings.FilePrefix}{currentName}";
+                var currentPath = Path.Combine(outputDir, atlasFileName);
+                var newPath = Path.Combine(outputDir, $"{newName}.atlas");
+
+                if (!File.Exists(newPath) && !currentName.StartsWith(ConversionSettings.FilePrefix))
+                {
+                    File.Move(currentPath, newPath);
+                    var renameLog =
+                        $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - [{fileName}] 重命名 Atlas: {atlasFileName} -> {newName}.atlas";
+                    ConversionLog += renameLog + "\n";
+                    unifiedLog.AppendLine(renameLog);
+                    renamedCount++;
+                }
+            }
+
+            var completeLog = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - [{fileName}] 文件重命名完成，共重命名 {renamedCount} 个文件";
+            ConversionLog += completeLog + "\n";
+            unifiedLog.AppendLine(completeLog);
+        }
+        catch (Exception ex)
+        {
+            var errorLog = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - [{fileName}] 重命名文件时出错: {ex.Message}";
+            ConversionLog += errorLog + "\n";
+            unifiedLog.AppendLine(errorLog);
+        }
+    }
+
+    private async Task HandleFileRenamingAsync(string originalSpineFile, string fileName, StringBuilder unifiedLog)
+    {
+        try
+        {
+            // 检查是否需要添加前缀（假设你的 ConversionSettings 有这些属性）
+            if (!ConversionSettings.AddPrefix || string.IsNullOrEmpty(ConversionSettings.FilePrefix))
+            {
+                return; // 不需要重命名
+            }
+
+            var outputDir = ConversionSettings.OutputDirectory;
+            var originalFileName = Path.GetFileNameWithoutExtension(originalSpineFile);
+            var baseFileName = $"{ConversionSettings.FilePrefix}{originalFileName}";
+
+            var logEntry =
+                $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - [{fileName}] 开始重命名文件，添加前缀: {ConversionSettings.FilePrefix}";
+            ConversionLog += logEntry + "\n";
+            unifiedLog.AppendLine(logEntry);
+
+            // 重命名 JSON 文件
+            var originalJsonPath = Path.Combine(outputDir, $"{originalFileName}.json");
+            var newJsonPath = Path.Combine(outputDir, $"{baseFileName}.json");
+            if (File.Exists(originalJsonPath))
+            {
+                File.Move(originalJsonPath, newJsonPath);
+                var renameLog =
+                    $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - [{fileName}] 重命名 JSON: {originalFileName}.json -> {baseFileName}.json";
+                ConversionLog += renameLog + "\n";
+                unifiedLog.AppendLine(renameLog);
+            }
+
+            // 重命名 Atlas 文件
+            var originalAtlasPath = Path.Combine(outputDir, $"{originalFileName}.atlas");
+            var newAtlasPath = Path.Combine(outputDir, $"{baseFileName}.atlas");
+            if (File.Exists(originalAtlasPath))
+            {
+                File.Move(originalAtlasPath, newAtlasPath);
+                var renameLog =
+                    $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - [{fileName}] 重命名 Atlas: {originalFileName}.atlas -> {baseFileName}.atlas";
+                ConversionLog += renameLog + "\n";
+                unifiedLog.AppendLine(renameLog);
+            }
+
+            var completeLog = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - [{fileName}] 文件重命名完成";
+            ConversionLog += completeLog + "\n";
+            unifiedLog.AppendLine(completeLog);
+        }
+        catch (Exception ex)
+        {
+            var errorLog = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - [{fileName}] 重命名文件时出错: {ex.Message}";
+            ConversionLog += errorLog + "\n";
+            unifiedLog.AppendLine(errorLog);
         }
     }
 

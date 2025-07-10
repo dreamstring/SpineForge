@@ -53,7 +53,7 @@
                         <StackPanel Margin="15">
 
                             <ui:InfoBar Title="重要提示"
-                                        Message="请选择您安装的 Spine 软件中的可执行文件 (Windows: Spine.com, Mac: Spine)"
+                                        Message="请选择您安装的 Spine 软件中的可执行文件"
                                         Severity="Warning"
                                         IsOpen="True"
                                         IsClosable="False"
@@ -330,7 +330,7 @@
                                            Padding="10,5" />
                             </Grid>
 
-                            <!-- 路径重置选项 -->
+                            <!-- 高级设置选项 -->
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="110" />
@@ -340,26 +340,49 @@
                                 </Grid.ColumnDefinitions>
 
                                 <ui:TextBlock Grid.Column="0"
-                                              Text="路径重置："
+                                              Text="高级设置："
                                               VerticalAlignment="Center"
                                               FontWeight="Medium"
                                               FontSize="12" />
 
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,6,0">
-                                    <CheckBox Content="重置图片索引路径"
+                                <Grid Grid.Column="1" Margin="0,0,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <CheckBox Grid.Column="0"
+                                              Content="重置图片索引路径"
                                               IsChecked="{Binding ConversionSettings.ResetImagePaths}"
                                               FontSize="12"
-                                              Margin="0,0,20,0"
+                                              Margin="0,0,12,0"
                                               VerticalAlignment="Center" />
 
-                                    <CheckBox Content="重置音频索引路径"
+                                    <CheckBox Grid.Column="1"
+                                              Content="重置音频索引路径"
                                               IsChecked="{Binding ConversionSettings.ResetAudioPaths}"
                                               FontSize="12"
+                                              Margin="0,0,12,0"
                                               VerticalAlignment="Center" />
-                                </StackPanel>
+
+                                    <CheckBox Grid.Column="2"
+                                              Content="增加前缀"
+                                              IsChecked="{Binding ConversionSettings.AddPrefix}"
+                                              FontSize="12"
+                                              Margin="0,0,6,0"
+                                              VerticalAlignment="Center" />
+
+                                    <ui:TextBox Grid.Column="3"
+                                                Text="{Binding ConversionSettings.FilePrefix}"
+                                                PlaceholderText="输入前缀..."
+                                                FontSize="12"
+                                                VerticalAlignment="Center"
+                                                IsEnabled="{Binding ConversionSettings.AddPrefix}" />
+                                </Grid>
                             </Grid>
-
-
+                            
                             <!-- 图集尺寸设置 -->
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>

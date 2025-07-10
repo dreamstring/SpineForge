@@ -50,8 +50,15 @@ namespace SpineForge.Models
 
         [ObservableProperty]
         private bool _resetAudioPaths = true;
+        
+        // 文件前缀相关属性
+        [ObservableProperty]
+        private bool _addPrefix = true;
 
-        // 新增：保存版本选择
+        [ObservableProperty]
+        private string _filePrefix = "Spine_UI_";
+
+        // 保存版本选择
         [ObservableProperty]
         private string _selectedSourceVersion = string.Empty;
 
