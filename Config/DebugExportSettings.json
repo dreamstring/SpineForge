@@ -45,7 +45,7 @@
     "combineSubdirectories": false,
     "flattenPaths": false,
     "useIndexes": false,
-    "debug": false,
+    "debug": true,
     "fast": false,
     "limitMemory": true,
     "currentProject": true,
